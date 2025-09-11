@@ -1,0 +1,7 @@
+<h2>부실 확률</h2>
+<div class="risk-percent">
+  <div class="big">{{ insolvency_data.percent }}</div>
+  <div class="badge {{ 'danger' if insolvency_data.status in ['위험','경고'] else 'warn' }}">
+    {{ insolvency_data.status }}
+  </div>
+</div>
