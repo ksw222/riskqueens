@@ -11,25 +11,6 @@ app = FastAPI(title="EWS Dashboard (SSR, no-JS)")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-@app.get("/html", response_class=HTMLResponse)
-def html(request: Request, db=Depends(get_db)):
-    # 기본 기업으로 렌더
-    try:
-        code = resolve_stock_code("005930", db)
-        data = get_company_detail(code, db)
-    except Exception:
-        data = {
-            "company_info": {"company_name":"N/A","ticker":"005930","market_type":"","founded_year":0},
-            "chart_data": {"bankruptcy_probabilities": {}, "title": ""},
-            "news_data": {},
-            "insolvency_data": {"percent":"-","status":"정보없음"},
-            "risk_factor": {},
-            "sector_risk": {"title":"업종별 평균 부실징후 확률","series":[]},
-            "benchmark": {"categories": [], "tolerance": 0.05},
-        }
-    return templates.TemplateResponse("index.html", {"request": request, **data})
-
-
 
 @app.get("/", response_class=HTMLResponse)
 def home() -> RedirectResponse:
