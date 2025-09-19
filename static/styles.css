@@ -1,0 +1,501 @@
+/* ===== 토스 느낌의 라이트 테마 ===== */
+:root{
+  --bg:#f6f8fa;
+  --text:#111827;
+  --muted:#6b7280;
+  --card:#ffffff;
+  --border:#e5e7eb;
+  --accent:#3182f6;   /*Toss blue*/
+  --accent-weak:#e7f0fe;
+  --danger:#ef4444;   /* 차트 라인(빨강 유지) */
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,"Malgun Gothic",sans-serif;
+}
+
+/* 외곽 래퍼는 밝은 보더 + 라운드 */
+.app{
+  margin:20px;
+  padding:16px 16px 24px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fafbfd;
+}
+
+/* 헤더: 화이트 카드, 얇은 보더, 미세 그림자 */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;background:var(--card);
+  border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+}
+.brand{font-weight:700}
+.search{display:flex;gap:8px}
+.search input{
+  min-width:320px;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--border);background:#fff;color:var(--text)
+}
+.search input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+.search button{
+  padding:10px 14px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600
+}
+
+/* 공통 카드 */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+  padding:14px;
+}
+
+/* 섹션 타이틀: 토스 블루 */
+.section-title{margin:0 0 10px;color:var(--accent);font-weight:800}
+
+/* 기업 정보(내부 Key-Value) */
+.kv {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);  /* 5등분 */
+  gap: 10px;
+}
+.k{display:inline-block;min-width:64px;color:var(--muted);margin-right:6px}
+.v{font-weight:600}
+
+
+
+
+/* ===== 페이지 레이아웃 (배치만 변경) ===== */
+.layout{
+  display:grid;
+  grid-template-columns: 1.5fr 1fr;      /* 좌 메인, 우 사이드 */
+  grid-template-rows: auto auto auto auto auto auto;
+  grid-template-areas:
+    "company company"
+    "riskg  riskp"   /* 2행: 부실게이지 | 부실확률 */
+    "chart   riskf"   /* 3행: 연도별 추이 | 위험요인 */
+    "sector  news"    /* 4행: 업종별 평균 부실확률 | 뉴스 */
+    "report report"
+    "bench   bench";  /* 5행: 업종대비 벤치마크(전체폭) */
+  gap:16px;
+  margin-top:16px;
+}
+
+/* 각 섹션을 grid-area에 매핑 */
+.company{grid-area:company}
+.news{grid-area:news}
+.riskg{grid-area:riskg}
+.chart{grid-area:chart}
+.riskp{grid-area:riskp}
+.riskf{grid-area:riskf}
+.bench{grid-area:bench}
+.sector{grid-area:sector}   /* ✅ 새로 추가 (업종별 평균 부실징후 차트) */
+.report{grid-area:report}
+
+/* 반응형 (모바일) */
+@media (max-width: 960px){
+  .layout{
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto auto auto auto auto auto auto auto;
+    grid-template-areas:
+      "company"
+      "riskg"
+      "riskp"
+      "chart"
+      "riskf"
+      "sector"
+      "news"
+      "report"
+      "bench";
+  }
+}
+
+
+/* 뉴스 리스트 */
+.news-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px}
+.news-item{padding:10px 12px;border:1px solid var(--border);border-radius:10px}
+.news-title{font-weight:700;margin-bottom:4px}
+.news-url a{color:var(--accent);text-decoration:none}
+
+/* 부실 확률 카드 */
+.risk-percent .big{font-size:40px;font-weight:900;text-align:center;margin-top:4px}
+.badge{
+  display:block;width:max-content;margin:8px auto 0;padding:5px 12px;border-radius:999px;font-weight:700;
+  background:#fff;border:1px solid var(--border);color:var(--text)
+}
+.badge.warn{background:#fff8e1;border-color:#fde68a;color:#b45309}
+.badge.danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+
+/* 위험요인 막대 */
+.factors .factor-row,
+.series .series-row{
+  display:grid;grid-template-columns:92px 1fr 72px;gap:10px;align-items:center;margin:8px 0
+}
+.label{color:var(--muted)}
+.year{color:var(--muted)}
+.val{font-variant-numeric:tabular-nums}
+.bar-wrap{
+  height:10px;border-radius:999px;overflow:hidden;
+  background:#f1f5f9;border:1px solid var(--border)
+}
+.bar{height:100%;background:var(--accent)}
+
+
+/* ===== SVG 라인 차트(라이트) ===== */
+.chart-card{margin-top:4px}
+.chart-svg{width:100%;height:auto;display:block}
+.chart-svg .panel{
+  fill:#fff;stroke:var(--border);stroke-width:1
+}
+.chart-svg .grid{
+  stroke:#e5e7eb;stroke-width:1;shape-rendering:crispEdges
+}
+.chart-svg .y-tick,.chart-svg .x-tick{fill:#94a3b8;font-size:11px}
+.chart-svg .plot-border{fill:none;stroke:var(--border);stroke-width:1}
+.chart-svg .line{fill:none;stroke:var(--danger);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.chart-svg .dot{fill:var(--danger);stroke:#fff;stroke-width:1}
+.chart-svg .area { fill: var(--danger); opacity: .12; }   /* 라인 아래 면적 */
+.chart-svg .val  { fill:#64748b; font-size:12px; font-weight:700; }
+.chart-svg .dot.latest { r:4.2; stroke:#fff; stroke-width:1.2; } /* 마지막 점 강조 */
+
+
+
+/* 얇은 카드 변형 */
+.card-slim{
+  background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px
+}
+
+/* 벤치마크 */
+.bench-note{color:var(--muted);font-size:12px;margin:4px 2px 10px}
+.bench-groups{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bench-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.bench-title{font-weight:800;color:var(--accent)}
+.bench-rule{color:var(--muted);font-size:12px}
+
+.bench-table{display:grid;gap:8px}
+.bench-row{
+  display:grid;
+  grid-template-columns: 120px 1fr auto;
+  gap:12px;
+  align-items:center;
+}
+.bench-metric{color:#111827;font-weight:600}
+/* .bar{position:absolute;top:0;left:0;height:100%} */
+.bar.industry{background:#cbd5e1}     /* 업종 평균(연한 회색/블루톤) */
+.bar-pair{
+  position:relative;
+  height:12px;
+  background:#e5e7eb;          /* 업종 평균 = 회색 배경 */
+  border-radius:999px;
+  overflow:hidden;
+}
+.bar.company{
+  position:absolute;
+  top:0; left:0;
+  height:100%;
+  width:var(--cw);              /* Jinja에서 전달한 company 퍼센트 */
+  background:var(--accent);     /* Toss blue */
+  border-radius:999px;
+}
+
+
+.bench-values{
+  display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums
+}
+.val{display:flex;align-items:center;gap:6px;color:#374151}
+.dot{width:8px;height:8px;border-radius:50%}
+.industry-dot{background:#cbd5e1}
+.company-dot{background:var(--accent)}
+
+.chip{
+  border:1px solid var(--border);padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700
+}
+.chip.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+.chip.danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+
+/* ===== 벤치마크 전용 막대 (토스식 깔끔) ===== */
+.bench .bar-pair{
+  position:relative;
+  height:12px;
+  background:#e5e7eb;          /* 업종 평균 = 회색 배경 */
+  border-radius:999px;
+  overflow:hidden;
+}
+.bench .bar.company{
+  position:absolute;
+  inset:0 auto 0 0;            /* top:0; right:auto; bottom:0; left:0 */
+  width:var(--cw);             /* Jinja에서 넘긴 회사 상대길이(%) */
+  background:var(--accent);    /* Toss blue */
+  border-radius:999px;
+}
+
+/* 구분선 */
+.divider{
+  margin:12px 0 14px;
+  border:0; height:1px;
+  background:var(--border);
+}
+
+/* ===== 업종별 평균 부실징후 확률 차트: 스타일 개선 전용 ===== */
+.mini-chart{margin-top:8px}
+
+.sector-svg{width:100%;height:auto;display:block}
+
+/* 패널/그리드는 더 연하고 미세 그림자 */
+.sector-svg .panel{
+  fill:#fff; stroke:var(--border); stroke-width:1;
+  filter: drop-shadow(0 1px 0 rgba(16,24,40,.02));
+}
+.sector-svg .grid{
+  stroke:#eef2f7; stroke-width:1; shape-rendering:crispEdges;
+}
+.sector-svg .x-tick{fill:#9aa3af; font-size:11px}
+
+/* 업종 라벨(왼쪽) – 진한 컬러 & 살짝 여백 */
+.sector-svg .y-label{
+  fill:#111827; font-weight:700; font-size:13px;
+}
+
+/* 트랙은 아주 옅은 회색 + 라운드 */
+.sector-svg .track{
+  fill:#f4f6f8; stroke:#eaeef3; stroke-width:1;
+  rx:8; ry:8;
+}
+
+/* 실제 값 막대 – Toss Blue, 둥근 끝, 살짝 그림자 & 부드러운 너비 애니메이션 */
+.sector-svg .bar{
+  fill:var(--accent);
+  rx:8; ry:8;
+  filter: drop-shadow(0 1px 0 rgba(49,130,246,.10));
+  transition: width .6s cubic-bezier(.2,.8,.2,1);
+}
+
+/* 값 텍스트 – 막대 밖: 딥그레이, 막대 안: 흰색 + 스트로크로 가독성 보강 */
+.sector-svg .val{
+  fill:#475569; font-size:12px; font-weight:700;
+}
+.sector-svg .val-in{
+  fill:#fff; font-size:12px; font-weight:800;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px rgba(49,130,246,.75);  /* 파란 스트로크로 테두리 */
+  text-shadow: 0 1px 0 rgba(0,0,0,.05);
+}
+
+/* ===== Gauge ===== */
+.gauge-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.gauge-head .muted{color:var(--muted)}
+.gauge-wrap{padding:4px 4px 10px}
+.gauge-svg{width:100%;height:auto;display:block;filter: drop-shadow(0 1px 1px rgba(16,24,40,.04));}
+.gauge-score{margin-top:6px;text-align:center}
+.gauge-score .num{font-size:36px;font-weight:900}
+.gauge-score .den{color:#64748b;margin-left:4px}
+
+.gauge-legend{display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.pill{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 10px;color:#334155;font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%}
+.dot.ok{background:#22c55e}
+.dot.warn{background:#f59e0b}
+.dot.danger{background:#ef4444}
+
+
+/* 게이지 크기 제어 + 반응형 */
+.gauge-wrap{
+  max-width: 400px;   /* 필요시 520~600 조절 */
+  width: 100%;
+  margin: 4px auto 0;
+}
+
+#gaugeChart{
+  display:block;
+  width:100%;
+  height:auto;        /* height 속성은 HTML에서 지웁니다 */
+}
+/* .gauge-svg{
+  width: 100%;
+  height: auto;
+  aspect-ratio: 200 / 120;  /* viewBox 비율 고정 
+} */
+
+
+/* 부실징후 배지 전용 (다른 .chip 규칙과 완전히 분리) */
+.status-pill{
+  display:inline-block;
+  padding:6px 14px;
+  border-radius:30px;
+  font-size:13px;
+  font-weight:600;
+  text-align:center;
+  min-width:80px;
+  border:0;
+}
+.status-pill--danger{ background:var(--danger); color:#fff; }
+.status-pill--safe  { background:#22c55e;     color:#fff; }
+
+/* === 부실확률 카드: 3블록 레이아웃 === */
+.risk-percent .rp-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "prob prob"
+    "icr  cap";
+  gap:12px;
+  margin-top:6px;
+}
+.risk-percent .metric{
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:10px;
+  padding:14px;
+  text-align:center;
+}
+.risk-percent .metric .label{
+  color:var(--muted);
+  font-weight:600;
+  margin-bottom:4px;
+}
+.risk-percent .metric .value{
+  font-size:22px;
+  font-weight:800;
+}
+.risk-percent .metric.prob{ grid-area: prob; }
+.risk-percent .metric:nth-of-type(2){ grid-area: icr; }
+.risk-percent .metric:nth-of-type(3){ grid-area: cap; }
+
+/* 큰 숫자(부실확률) */
+.risk-percent .metric.prob .value.big{
+  font-size:44px;
+  line-height:1.1;
+}
+
+/* 배지는 기존 규칙 재사용(없으면 보강) */
+.risk-percent .badge{
+  display:inline-block;
+  margin-top:8px;
+  padding:6px 12px;
+  border-radius:999px;
+  font-weight:700;
+  background:#fff;border:1px solid var(--border);color:var(--text);
+}
+.risk-percent .badge.warn{background:#fff8e1;border-color:#fde68a;color:#b45309}
+.risk-percent .badge.danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+
+/* 우측 '부실확률' 카드 안의 콘텐츠를 가운데 정렬 */
+.riskp{
+  display: flex;
+  align-items: center;      /* 세로 가운데 */
+  justify-content: center;  /* 가로 가운데 */
+  /* 필요하면 최소 높이를 지정해서 더 중앙 느낌 강화 */
+  min-height: 280px;        /* 취향껏 240~340px 조절 */
+}
+
+/* 내부 콘텐츠가 카드 너비를 꽉 채우도록 */
+.riskp > *{
+  width: 100%;
+}
+
+/* ai_report.html */
+.ai-card .ai-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px
+}
+.ai-card .btn{
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--accent);
+  color:#fff;
+  font-weight:700
+}
+.ai-report pre{
+  white-space:pre-wrap;
+  word-break:break-word;
+  font:13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  background:#f8fafc;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:12px
+}
+.muted{color:var(--muted)}
+
+
+/* ===========================
+   Beneish M-Score (No-JS)
+   =========================== */
+
+   .benish-card { display: grid; gap: 12px; }
+   .benish-card__head {
+     display: flex; align-items: center; justify-content: space-between;
+   }
+   .benish-card__title {
+     margin: 0; color: var(--accent); font-weight: 800;
+   }
+   .benish-chip{
+     border:1px solid var(--border);
+     padding:4px 10px; border-radius:999px; font-weight:700; font-size:12px;
+   }
+   .benish-chip.safe   { background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
+   .benish-chip.danger { background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+   
+   /* 도넛(순수 CSS, conic-gradient) */
+   .benish-donut{
+     --size: 220px;              /* 필요시 160~260px로 조절 */
+     --track: #e5e7eb;           /* 트랙 색 */
+     --fill:  var(--accent);     /* 채움 색(토스 블루) */
+     width: var(--size);
+     aspect-ratio: 1;
+     margin: 6px auto 4px;
+     border-radius: 50%;
+     background:
+       conic-gradient(var(--fill) calc(var(--bn-pct)*1%), var(--track) 0);
+     position: relative;
+     display: grid; place-items: center;
+     box-shadow: 0 1px 2px rgba(16,24,40,.04);
+   }
+   /* 가운데 구멍 */
+   .benish-donut::after{
+     content:"";
+     position:absolute; inset:12%;
+     background: var(--card);
+     border-radius: 50%;
+     box-shadow: 0 0 0 1px var(--border) inset;
+   }
+   /* 중앙 텍스트 */
+   .benish-donut__center{
+     position: relative; text-align: center; z-index: 1;
+   }
+   .benish-value{
+     font-size: 28px; font-weight: 900; color: var(--text);
+     letter-spacing: .2px;
+   }
+   .benish-label{
+     margin-top: 2px; color: var(--muted); font-weight: 700; font-size: 12px;
+   }
+   .benish-year{
+     margin-top: 2px; color: #64748b; font-size: 12px; font-weight: 700;
+   }
+   
+   /* 하단 설명 */
+   .benish-note{
+     margin: 0;
+     padding: 10px 12px;
+     border: 1px solid var(--border);
+     background: #fff;
+     border-radius: 10px;
+     color: #374151;
+     font-size: 13px;
+   }
+   
+   /* 반응형: 좁은 화면에서 도넛 크기 축소 */
+   @media (max-width: 960px){
+     .benish-donut{ --size: 180px; }
+   }
+   @media (max-width: 520px){
+     .benish-donut{ --size: 160px; }
+   }
+   

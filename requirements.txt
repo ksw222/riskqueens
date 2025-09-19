@@ -1,0 +1,5 @@
+fastapi[standard]
+SQLAlchemy>=2
+psycopg2-binary
+pydantic-settings
+jinja2

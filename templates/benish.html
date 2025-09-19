@@ -1,0 +1,24 @@
+<section class="news card benish-card">
+    <div class="benish-card__head">
+      <h3 class="benish-card__title">Beneish M-Score</h3>
+      <div class="benish-chip {{ 'danger' if beneish_mscore is not none and beneish_mscore >= threshold else 'safe' }}">
+        {{ '의심' if beneish_mscore is not none and beneish_mscore >= threshold else '정상' }}
+      </div>
+    </div>
+  
+    <!-- 도넛: score_fill(0 또는 100)을 CSS 변수로 넘깁니다 -->
+    <figure class="benish-donut" style="--bn-pct: {{ score_fill|default(0) }}">
+      <figcaption class="benish-donut__center">
+        <div class="benish-value">
+          {% if beneish_mscore is not none %}{{ '{:.2f}'.format(beneish_mscore) }}{% else %}-{% endif %}
+        </div>
+        <div class="benish-label">M-Score</div>
+        <div class="benish-year">{{ beneish_year }}</div>
+      </figcaption>
+    </figure>
+  
+    <p class="benish-note">
+      임계값 <b>{{ threshold }}</b> 이상이면 <b>의심</b>입니다.
+    </p>
+  </section>
+  
