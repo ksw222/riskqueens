@@ -1,0 +1,13 @@
+<h2>위험개선요인</h2>
+<div class="factors">
+  {% for name, pct_str in risk_factor.items() %}
+    {% set pct = pct_str.replace('%','') | float %}
+    <div class="factor-row">
+      <span class="label">{{ name }}</span>
+      <div class="bar-wrap">
+        <div class="bar" style="width: {{ pct }}%"></div>
+      </div>
+      <span class="val">{{ pct_str }}</span>
+    </div>
+  {% endfor %}
+</div>

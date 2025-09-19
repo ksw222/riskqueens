@@ -1,0 +1,111 @@
+{# templates/sector_risk_chart.html — 업종별 평균 부실징후 확률 (Vertical Bars with clipped plot, safe) #}
+{% set title = sector_risk.title or "업종별 평균 부실징후 확률" %}
+{# rows: series 우선, 없으면 items 키도 허용 #}
+{% set rows = sector_risk.get('series') or sector_risk.get('items') or [] %}
+
+<h3 class="sub-title">{{ title }}</h3>
+
+{# === 데이터 없으면 메시지 후 종료 === #}
+{% if rows|length == 0 %}
+  <div class="mini-chart"><p class="y-label" style="margin:8px 4px;">표시할 데이터가 없습니다.</p></div>
+  {% set _stop = true %}
+{% else %}
+  {% set _stop = false %}
+{% endif %}
+
+{% if not _stop %}
+  {# === 캔버스 & 여백 === #}
+  {% set W = 860 %}
+  {% set H = 300 %}
+  {% set ml = 56 %}   {# 왼쪽 y축 숫자 자리 #}
+  {% set mr = 20 %}
+  {% set mt = 22 %}
+  {% set mb = 70 %}   {# 아래 x축 라벨 전용 공간 #}
+
+  {% set iw = W - ml - mr %}
+  {% set ih = H - mt - mb %}
+
+  {# === 축/눈금 === #}
+  {% set y_max = sector_risk.y_max_pct or sector_risk.x_max_pct or 20 %}
+  {% set y_ticks = sector_risk.y_ticks or sector_risk.x_ticks or [0,5,10,15,20] %}
+
+  {# === 데이터 개수/간격 === #}
+  {% set n = rows | length %}
+  {% set step = (iw / (n + 1 if n>0 else 1)) %}
+  {% set bar_w = [step * 0.6, 44] | min %}
+
+  <div class="mini-chart">
+    <svg viewBox="0 0 {{ W }} {{ H }}" class="sector-svg" role="img" aria-label="{{ title }}">
+      <title>{{ title }}</title>
+
+      <!-- 전체 카드 패널 -->
+      <rect x="1" y="1" width="{{ W-2 }}" height="{{ H-2 }}" rx="10" ry="10" class="panel"/>
+
+      {# 플롯 영역을 벗어나는 요소를 잘라내기 위한 clipPath #}
+      <defs>
+        <clipPath id="plotClipSector">
+          <rect x="{{ ml }}" y="{{ mt }}" width="{{ iw }}" height="{{ ih }}" rx="8" ry="8"></rect>
+        </clipPath>
+      </defs>
+
+      <!-- 플롯 프레임 -->
+      <rect x="{{ ml }}" y="{{ mt }}" width="{{ iw }}" height="{{ ih }}"
+            rx="8" ry="8" fill="none" style="stroke: var(--border); stroke-width: 1;" />
+
+      <!-- 가로 그리드 (플롯 내부만 보이게) -->
+      <g clip-path="url(#plotClipSector)">
+        {% for t in y_ticks %}
+          {% set gy = mt + (ih * (1 - (t / y_max))) %}
+          <line x1="{{ ml }}" y1="{{ gy }}" x2="{{ ml + iw }}" y2="{{ gy }}" class="grid"/>
+        {% endfor %}
+      </g>
+
+      <!-- y축 눈금 숫자 -->
+      {% for t in y_ticks %}
+        {% set gy = mt + (ih * (1 - (t / y_max))) %}
+        <text x="{{ ml - 8 }}" y="{{ gy + 4 }}" class="x-tick" text-anchor="end">{{ t }}</text>
+      {% endfor %}
+
+      <!-- x축 베이스라인 -->
+      <line x1="{{ ml }}" y1="{{ mt + ih }}" x2="{{ ml + iw }}" y2="{{ mt + ih }}"
+            style="stroke: var(--border); stroke-width: 1.2;" />
+
+      <!-- 막대(클리핑 적용) + 값 라벨 -->
+      <g clip-path="url(#plotClipSector)">
+        {% for it in rows %}
+          {% set idx = loop.index0 %}
+
+          {# 호환: label/value 또는 sector/prob 또는 industry/avg_prob #}
+          {% set sector = (it.label if 'label' in it else (it.sector if 'sector' in it else (it.industry if 'industry' in it else ''))) %}
+          {% set prob   = (it.value if 'value' in it else (it.prob   if 'prob'   in it else (it.avg_prob if 'avg_prob' in it else 0))) %}
+          {% set pct = (prob * 100.0) %}
+
+          {% set ratio = (pct / y_max) if pct < y_max else 1 %}
+          {% set bar_h = ih * ratio %}
+          {% set cx = ml + step * (idx + 1) %}
+          {% set y_top = mt + ih - bar_h %}
+
+          <!-- 막대 -->
+          <rect x="{{ cx - bar_w/2 }}" y="{{ y_top }}" width="{{ bar_w }}" height="{{ bar_h }}"
+                rx="6" ry="6" class="bar"/>
+
+          <!-- 값 라벨: 막대 위쪽 (플롯 내부) -->
+          <text x="{{ cx }}" y="{{ y_top - 8 }}" text-anchor="middle"
+                style="fill:#475569;font-size:12px;font-weight:700">
+            {{ '%.1f'|format(pct) }}%
+          </text>
+        {% endfor %}
+      </g>
+
+      <!-- x축 업종 라벨(플롯 아래 전용 영역) -->
+      {% for it in rows %}
+        {% set idx = loop.index0 %}
+        {% set sector = (it.label if 'label' in it else (it.sector if 'sector' in it else (it.industry if 'industry' in it else ''))) %}
+        {% set cx = ml + step * (idx + 1) %}
+        <text x="{{ cx }}" y="{{ mt + ih + 28 }}" text-anchor="middle" class="y-label">
+          {{ sector }}
+        </text>
+      {% endfor %}
+    </svg>
+  </div>
+{% endif %}

@@ -1,0 +1,11 @@
+<h2>뉴스</h2>
+<ul class="news-list">
+  {% for item in news_data.values() %}
+    <li class="news-item">
+      <div class="news-title">{{ item.title }}</div>
+      <div class="news-url">
+        <a href="https://{{ item.url }}" target="_blank" rel="noopener">원문 보기</a>
+      </div>
+    </li>
+  {% endfor %}
+</ul>

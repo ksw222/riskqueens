@@ -1,0 +1,50 @@
+<h2 class="section-title">업종 대비 벤치마크</h2>
+<div class="bench-note">업종 평균과 비교(±5% 이내는 동률로 간주)</div>
+
+{% set bench = benchmark or {'categories': [], 'tolerance': 0.05} %}
+<div class="bench-groups">
+  {% set tol = bench.tolerance or 0.05 %}
+
+  {% for cat in bench.categories %}
+    <section class="bench-group card-slim">
+      <div class="bench-head">
+        <div class="bench-title">{{ cat.name }}</div>
+        <div class="bench-rule">{{ cat.rule }}</div>
+      </div>
+
+      <div class="bench-table">
+        {% for m in cat.metrics %}
+          {% set maxv = [m.company|abs, m.industry|abs] | max %}
+          {% set maxv = 1 if maxv == 0 else maxv %}
+          {% set cw = (m.company|abs / maxv * 100) %}
+          {% set iw = (m.industry|abs / maxv * 100) %}
+
+          {% if m.direction == 'higher_better' %}
+            {% set worse = (m.company < m.industry * (1 - tol)) %}
+          {% else %}
+            {% set worse = (m.company > m.industry * (1 + tol)) %}
+          {% endif %}
+
+          <div class="bench-row">
+            <div class="bench-metric">{{ m.name }}</div>
+            <div class="bench-bars">
+              <!-- 업종 평균 = 배경, 기업 = 파란 오버레이 -->
+              <div class="bar-pair" style="--cw: {{ cw }}%">
+                <div class="bar company"></div>
+              </div>
+            </div>
+            <div class="bench-values">
+              <div class="val"><span class="dot industry-dot"></span>{{ m.industry }}</div>
+              <div class="val"><span class="dot company-dot"></span>{{ m.company }}</div>
+              {% if worse %}
+                <span class="chip danger">{{ cat.signal_if_worse }}</span>
+              {% else %}
+                <span class="chip ok">정상</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</div>

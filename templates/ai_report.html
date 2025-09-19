@@ -1,0 +1,19 @@
+<section class="report card ai-card">
+    <div class="ai-head">
+      <h2 class="section-title">AI 레포트</h2>
+      <form action="/company/{{ company_info.ticker }}/ai-report" method="post">
+        <button class="btn" type="submit">레포트 생성</button>
+      </form>
+    </div>
+  
+    {% if ai_report_md %}
+      <div class="ai-report">
+        <pre>{{ ai_report_md }}</pre>
+        <!-- Markdown으로 렌더하고 싶으면 Python에서 md → HTML 변환 후 |safe 사용 -->
+        <!-- <div class="md" >{{ ai_report_html|safe }}</div> -->
+      </div>
+    {% else %}
+      <div class="muted">버튼을 눌러 현재 지표로 보고서를 생성하세요.</div>
+    {% endif %}
+  </section>
+  

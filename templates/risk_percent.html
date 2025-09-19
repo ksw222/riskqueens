@@ -1,0 +1,28 @@
+<section class="risk-percent">
+  <div class="rp-grid">
+    <!-- 1행: 부실확률 (가로 전체) -->
+    <div class="metric prob">
+      <div class="label">부실확률</div>
+      <div class="value big">{{ insolvency_data.percent }}</div>
+      <span class="badge {{ 'danger' if insolvency_data.status in ['위험','부실징후'] else 'warn' }}">
+        {{ insolvency_data.status }}
+      </span>
+    </div>
+
+    <!-- 2행-좌: 이자보상배율 -->
+    <div class="metric">
+      <div class="label">이자보상배율</div>
+      <div class="value">
+        {{ risk_factor["이자보상배율"] if risk_factor and "이자보상배율" in risk_factor else "-" }}
+      </div>
+    </div>
+
+    <!-- 2행-우: 자본잠식률 -->
+    <div class="metric">
+      <div class="label">자본잠식률</div>
+      <div class="value">
+        {{ insolvency_card.cap_erosion if insolvency_card is defined and insolvency_card.cap_erosion is not none else "-" }}
+      </div>
+    </div>
+  </div>
+</section>
