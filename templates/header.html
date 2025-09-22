@@ -2,18 +2,12 @@
 <header class="header">
   <div class="brand">RQ Dashboard</div>
   <form class="search" action="/company" method="get">
-    <input type="text" name="corp_id" placeholder="종목코드(005930) 또는 회사명(삼성전자)" />
+    <input type="text" name="corp_id" placeholder="종목코드(000000) 또는 회사명(리스크퀸즈)" />
     <button type="submit">검색</button>
   </form>
-</header>
 
-<!-- <header class="header">
-    <div class="brand">RQ : Signs of insolvency Dashboard</div>
-  
-    JS 없이 GET 폼으로 검색 → /company?corp_id=... → 서버에서 /company/{corp_id}로 리다이렉트 
-    <form method="get" action="/company" class="search">
-      <input type="text" name="corp_id" placeholder="종목코드 또는 기업 식별자 (예: 005930)" />
-      <button type="submit">검색</button>
+    <!-- 메일 보내기 버튼 -->
+    <form class="sendmail" action="/alerts/send" method="post" style="margin-left:12px">
+      <button type="submit">메일 보내기</button>
     </form>
-  </header>
-   -->
+</header>

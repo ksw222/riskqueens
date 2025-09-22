@@ -5,7 +5,7 @@
   --muted:#6b7280;
   --card:#ffffff;
   --border:#e5e7eb;
-  --accent:#3182f6;   /*Toss blue*/
+  --accent:#3182F7;   /*Toss blue*/
   --accent-weak:#e7f0fe;
   --danger:#ef4444;   /* 차트 라인(빨강 유지) */
 }
@@ -32,9 +32,12 @@ body{
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 14px;background:var(--card);
   border:1px solid var(--border);border-radius:12px;
-  box-shadow:0 1px 2px rgba(16,24,40,.04);
+  background-color: #227eff;
+  box-shadow:0 1px 2px rgba(110, 110, 110, 0.04);
 }
-.brand{font-weight:700}
+.brand{
+  font-weight:700;
+  color: #fff;}
 .search{display:flex;gap:8px}
 .search input{
   min-width:320px;padding:10px 12px;border-radius:10px;
@@ -42,8 +45,44 @@ body{
 }
 .search input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
 .search button{
-  padding:10px 14px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600
+  padding:10px 14px;border:0;border-radius:10px;background:#fff;color:#2a2a2a;font-weight:600
 }
+
+/* 검색폼 오른쪽에 '메일 보내기' 버튼 배치용 (선택) */
+.header .right{
+  display:flex;align-items:center;gap:8px;
+}
+
+/* 메일 보내기 버튼 */
+.sendmail button{
+  padding:10px 14px;
+  border:0;
+  border-radius:10px;
+  background:#fff;          /* 파란 헤더 위에서 흰 버튼 */
+  color:#2a2a2a;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .02s ease, box-shadow .15s ease;
+  box-shadow:0 1px 1px rgba(0,0,0,.04);
+}
+.sendmail button:hover{ box-shadow:0 2px 6px rgba(0,0,0,.12) }
+.sendmail button:active{ transform:translateY(1px) }
+.sendmail button:focus{
+  outline:0;
+  box-shadow:0 0 0 3px var(--accent-weak, rgba(49,130,246,.25));
+}
+
+/* 비활성/로딩 상태 (원하면 클래스 토글) */
+.sendmail button:disabled{
+  opacity:.6; cursor:not-allowed;
+}
+
+/* 좁은 화면에서 입력창 줄어들기 */
+@media (max-width: 720px){
+  .search input{ min-width:220px }
+}
+
+
 
 /* 공통 카드 */
 .card{
@@ -60,7 +99,7 @@ body{
 /* 기업 정보(내부 Key-Value) */
 .kv {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);  /* 5등분 */
+  grid-template-columns: repeat(6, 1fr);  /* 5등분 */
   gap: 10px;
 }
 .k{display:inline-block;min-width:64px;color:var(--muted);margin-right:6px}
@@ -122,13 +161,17 @@ body{
 .news-url a{color:var(--accent);text-decoration:none}
 
 /* 부실 확률 카드 */
-.risk-percent .big{font-size:40px;font-weight:900;text-align:center;margin-top:4px}
-.badge{
-  display:block;width:max-content;margin:8px auto 0;padding:5px 12px;border-radius:999px;font-weight:700;
-  background:#fff;border:1px solid var(--border);color:var(--text)
+.risk-percent .big { font-size:40px; font-weight:900; text-align:center; margin-top:4px; }
+.risk-percent .badge{
+  display:block; width:max-content; margin:8px auto 0; padding:5px 12px; border-radius:999px; font-weight:700;
+  background:#fff; border:1px solid var(--border); color:var(--text);
 }
-.badge.warn{background:#fff8e1;border-color:#fde68a;color:#b45309}
-.badge.danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+
+/* 상태 배지 색상 (risk-percent 범위 안에서만 적용) */
+.risk-percent .badge.good   { background:#ecfdf5; border-color:#a7f3d0; color:#065f46; } /* 양호(초록) */
+.risk-percent .badge.warn   { background:#fff8e1; border-color:#fde68a; color:#b45309; }
+.risk-percent .badge.danger { background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+
 
 /* 위험요인 막대 */
 .factors .factor-row,
@@ -240,6 +283,43 @@ body{
   background:var(--border);
 }
 
+/* 고정 길이 트랙 */
+.bench-track{
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: visible;
+}
+
+/* 마커: left:% 로 정확 배치 */
+.bench-marker{
+  position:absolute;
+  top:50%;
+  left: var(--p);           /* 0%~100% */
+  transform: translate(-50%, -50%);
+  width:12px;height:12px;border-radius:50%;
+  box-shadow:0 0 0 2px #fff;
+}
+
+.bench-marker.industry{ background:#cbd5e1; }   /* 업종 평균(회색) */
+.bench-marker.company { background: var(--accent); } /* 회사(파랑) */
+
+/* .bench-zero{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:2px;height:18px;
+  background:#cbd5e1;border-radius:1px;box-shadow:0 0 0 2px #fff;
+} */
+
+/* 단위 표시 */
+.bench-values .unit{margin-left:2px;color:#6b7280;font-size:12px}
+
+
+
 /* ===== 업종별 평균 부실징후 확률 차트: 스타일 개선 전용 ===== */
 .mini-chart{margin-top:8px}
 
@@ -284,6 +364,47 @@ body{
   -webkit-text-stroke: 3px rgba(49,130,246,.75);  /* 파란 스트로크로 테두리 */
   text-shadow: 0 1px 0 rgba(0,0,0,.05);
 }
+
+/* 기본 막대 */
+.sector-svg .bar{
+  fill: var(--accent);
+  rx: 8; ry: 8;
+  filter: drop-shadow(0 1px 0 rgba(49,130,246,.10));
+  transition: width .6s cubic-bezier(.2,.8,.2,1);
+}
+/* 강조 막대 (현재 기업 업종) */
+.sector-svg .bar.highlight{
+  fill: #8b5cf6; /* indigo-500 느낌. 원하시는 색으로 바꿔도 됩니다 */
+}
+
+
+
+/* 드롭다운 프레임 */
+.sr-dd{ position:relative; display:inline-block; }
+.sr-dd > summary{
+  list-style:none; cursor:pointer; user-select:none;
+  border:1px solid var(--border); border-radius:8px;
+  padding:6px 10px; min-width:260px; max-width:420px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  background:#fff;
+}
+.sr-dd[open] > summary{ border-bottom-left-radius:0; border-bottom-right-radius:0; }
+.sr-dd-panel{
+  position:absolute; z-index:20; left:0; top:100%;
+  background:#fff; border:1px solid var(--border); border-top:none;
+  border-radius:0 0 8px 8px; padding:8px; box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+
+/* 체크박스 리스트 */
+.sr-list{ max-height:260px; width:360px; max-width:60vw; overflow:auto; padding:4px 2px; }
+.sr-item{ display:flex; gap:8px; align-items:center; padding:4px 6px; border-radius:6px; }
+.sr-item:hover{ background:#f8fafc; }
+.sr-dd-actions{ display:flex; gap:6px; justify-content:flex-end; margin-top:8px; }
+.sr-dd-actions > button{
+  border:1px solid var(--border); background:#f3f4f6; border-radius:6px; padding:4px 8px;
+}
+
+
 
 /* ===== Gauge ===== */
 .gauge-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
@@ -371,7 +492,7 @@ body{
   line-height:1.1;
 }
 
-/* 배지는 기존 규칙 재사용(없으면 보강) */
+/* 배지 */
 .risk-percent .badge{
   display:inline-block;
   margin-top:8px;
@@ -380,22 +501,88 @@ body{
   font-weight:700;
   background:#fff;border:1px solid var(--border);color:var(--text);
 }
+.risk-percent .badge.good{background:#ecfdf5;border-color:#d1fae5;color:#065f46}
 .risk-percent .badge.warn{background:#fff8e1;border-color:#fde68a;color:#b45309}
 .risk-percent .badge.danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
 
 /* 우측 '부실확률' 카드 안의 콘텐츠를 가운데 정렬 */
 .riskp{
   display: flex;
-  align-items: center;      /* 세로 가운데 */
-  justify-content: center;  /* 가로 가운데 */
-  /* 필요하면 최소 높이를 지정해서 더 중앙 느낌 강화 */
-  min-height: 280px;        /* 취향껏 240~340px 조절 */
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+.riskp > *{ width: 100%; }
+
+/* 숫자 두 개를 깔끔히 배치 (자사 / 업종평균) */
+.risk-percent .value-compare{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:16px;
+  align-items:end;
+  margin-bottom:10px;
+}
+.risk-percent .value-compare .val{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.risk-percent .value-compare .val .val-num{
+  font-size:28px;
+  font-weight:800;
+  line-height:1.1;
+}
+.risk-percent .value-compare .val .val-label{
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+}
+.risk-percent .value-compare .you .val-num{ color: var(--text); }
+.risk-percent .value-compare .industry .val-num{ color: #6b7280; } /* 회색 */
+
+/* 미니 비교 트랙 */
+.risk-percent .compare-bar{
+  position:relative;
+  height:22px;
+  margin:2px 4px 8px;
+}
+.risk-percent .compare-bar .track{
+  position:absolute; left:0; right:0; top:50%;
+  height:6px; transform:translateY(-50%);
+  background:linear-gradient(90deg, #f3f4f6, #e5e7eb);  /* 얕은 회색 */
+  border-radius:999px;
+  border:1px solid var(--border);
+}
+/* 핀 두 개: 자사(포인트), 업종(회색) */
+.risk-percent .compare-bar .pin{
+  position:absolute;
+  top:50%; transform:translate(-50%, -50%);
+  width:12px; height:12px; border-radius:50%;
+  border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.08);
+}
+.risk-percent .compare-bar .pin.your{
+  background: var(--accent);
+  outline: 2px solid rgba(49,130,246,.25);
+}
+.risk-percent .compare-bar .pin.industry{
+  background: #9ca3af;
+  outline: 2px solid rgba(156,163,175,.15);
 }
 
-/* 내부 콘텐츠가 카드 너비를 꽉 채우도록 */
-.riskp > *{
-  width: 100%;
+.risk-percent .metric .hint{
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.3;
 }
+
+
+/* 모바일 대응 */
+@media (max-width: 520px){
+  .risk-percent .value-compare .val .val-num{ font-size:24px; }
+}
+
+
 
 /* ai_report.html */
 .ai-card .ai-head{
@@ -423,6 +610,13 @@ body{
 }
 .muted{color:var(--muted)}
 
+.md h2 { margin-top: 1.2em; font-size: 1.2rem; border-bottom: 1px solid #ddd; }
+.md p { margin: 0.4em 0; line-height: 1.5; }
+.md ul { padding-left: 1.2em; }
+.md table { border-collapse: collapse; margin: 0.8em 0; }
+.md table th, .md table td { border: 1px solid #ddd; padding: 6px 10px; }
+
+
 
 /* ===========================
    Beneish M-Score (No-JS)
@@ -445,8 +639,9 @@ body{
    /* 도넛(순수 CSS, conic-gradient) */
    .benish-donut{
      --size: 220px;              /* 필요시 160~260px로 조절 */
-     --track: #e5e7eb;           /* 트랙 색 */
-     --fill:  var(--accent);     /* 채움 색(토스 블루) */
+     /* --track: #e5e7eb;           트랙 색 */
+     --track: #22c55e;
+     --fill:  var(--danger);     /* 채움 색(토스 블루) */
      width: var(--size);
      aspect-ratio: 1;
      margin: 6px auto 4px;

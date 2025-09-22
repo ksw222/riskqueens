@@ -8,7 +8,7 @@
   
     {% if ai_report_md %}
       <div class="ai-report">
-        <pre>{{ ai_report_md }}</pre>
+        <pre>{{ ai_report_md|safe }}</pre>
         <!-- Markdown으로 렌더하고 싶으면 Python에서 md → HTML 변환 후 |safe 사용 -->
         <!-- <div class="md" >{{ ai_report_html|safe }}</div> -->
       </div>

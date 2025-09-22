@@ -34,7 +34,7 @@ class DashboardFlat(Base):
     npm                   = Column(Numeric)  # 순이익률
     roa                   = Column(Numeric)
     roe                   = Column(Numeric)
-    current_ratio         = Column(Numeric)
+    current_ratio         = Column(Numeric)  # 유동비율
     quick_ratio           = Column(Numeric)  # 당좌비율
     debt_ratio            = Column(Numeric)
     borrow_dependence     = Column(Numeric)  # 차입금의존도

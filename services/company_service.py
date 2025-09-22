@@ -1,9 +1,90 @@
 # services/company_service.py
-from typing import Dict, List
+from typing import Dict, List, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from sqlalchemy import or_
+from sqlalchemy import func, or_, and_
+import os
+
 from db_models.dashboard_flat import DashboardFlat
+
+
+# 메일보내기
+def _to_float(x):
+    try:
+        return float(x)
+    except:
+        return None
+
+def get_latest_alert_companies(
+    db: Session,
+    alert_threshold_pct: float = None,  # .env에서 가져옴 (예: 60)
+    prob_is_percent: bool = False       # default_prob가 0~100인지 여부
+) -> List[Dict[str, Any]]:
+    """
+    회사별 '가장 최신 연도' 레코드만 모은 뒤,
+    1) label 컬럼이 있으면 label=1만
+    2) 없으면 default_prob 기준으로 경보 임계치 이상만
+    반환합니다.
+    """
+    # 회사별 최신연도 subquery
+    subq = (
+        db.query(
+            DashboardFlat.stock_code.label("stock_code"),
+            func.max(DashboardFlat.year).label("max_year")
+        ).group_by(DashboardFlat.stock_code)
+         .subquery()
+    )
+
+    rows = (
+        db.query(DashboardFlat)
+          .join(subq, and_(
+                DashboardFlat.stock_code == subq.c.stock_code,
+                DashboardFlat.year == subq.c.max_year
+          ))
+          .all()
+    )
+
+    # 환경설정
+    if alert_threshold_pct is None:
+        alert_threshold_pct = float(os.getenv("ALERT_THRESHOLD_PCT", "60"))
+    prob_is_percent = str(os.getenv("PROB_IS_PERCENT", "false")).lower() == "true"
+
+    alert_list = []
+    for r in rows:
+        # 1) label이 있으면 그걸 우선 사용
+        has_label = hasattr(r, "label")
+        is_alert = False
+
+        if has_label and getattr(r, "label") is not None:
+            is_alert = int(getattr(r, "label")) == 1
+        else:
+            # 2) default_prob 기준: 저장 스케일(0~1 or 0~100)에 따라 환산
+            p = _to_float(r.default_prob)
+            if p is None:
+                is_alert = False
+            else:
+                p_pct = p if prob_is_percent else (p * 100.0)
+                is_alert = p_pct >= alert_threshold_pct
+
+        if is_alert:
+            # 표시용 값 준비
+            p = _to_float(r.default_prob)
+            p_pct = None if p is None else (p if prob_is_percent else p * 100.0)
+
+            alert_list.append({
+                "stock_code": r.stock_code,
+                "year": r.year,
+                "company_name": r.company_name,
+                "default_prob_pct": None if p_pct is None else round(p_pct, 1),
+                "icr": r.icr,
+                "capital_impairment_ratio": r.capital_impairment_ratio,
+                "debt_ratio": r.debt_ratio,
+                "roa": r.roa,
+                "roe": r.roe,
+            })
+
+    # 정렬(기본: 위험도 내림차순 → 종목코드)
+    alert_list.sort(key=lambda x: (x["default_prob_pct"] or -1), reverse=True)
+    return alert_list
 
 # ✅ [추가] Beneish 임계값
 THRESHOLD = -2.22
@@ -41,6 +122,8 @@ def get_company_detail(stock_code: str, db: Session) -> Dict:
         "ticker": latest.stock_code,
         "market_type": market_map.get((latest.market or "").upper(), latest.market or ""),
         "label": int(latest.label or 0),   # ✅ 추가: 0/1 정수로 고정
+        "industry_category" : latest.industry_category,
+        "median_default_prob" : latest.median_default_prob,
     }
 
     # 2) 연도별 부실확률 (0~1 -> 템플릿에서 x100 처리)
@@ -49,6 +132,8 @@ def get_company_detail(stock_code: str, db: Session) -> Dict:
         "title": f"연도별 {latest.company_name} 부실확률",
         # 필요 시 수동 상한: "y_max_pct": 20
     }
+    
+    
 
     # 3) 뉴스 (최신 연도 5개만)
     news_list = (latest.news_titles or [])[:5]
@@ -59,35 +144,82 @@ def get_company_detail(stock_code: str, db: Session) -> Dict:
     # 4) 부실확률 카드
     prob = float(latest.default_prob or 0.0)
     insolvency_data = {
-        "percent": f"{prob*100:.1f}%",
+        "percent": f"{prob:.1f}%",
         "status": _status_from_prob(prob),
     }
 
     # 5) 위험요인 슬림 바 (현재 템플릿이 % 문자열을 기대하면 퍼센트 붙여줌)
     risk_factor = {
+        "매출액증가율": f"{float(latest.sales_growth or 0):.1f}%",
+        "ROA":         f"{float(latest.roa or 0):.1f}%",
+        "ROE":          f"{float(latest.roe or 0):.1f}%",
+        "차입금의존도": f"{float(latest.borrow_dependence or 0):.1f}%",
         "이자보상배율": f"{float(latest.icr or 0):.1f}",
         "부채비율":     f"{float(latest.debt_ratio or 0):.1f}%",
-        "ROA":         f"{float(latest.roa or 0):.1f}%",
+        "매출액순이익률": f"{float(latest.npm or 0):.1f}%",
+        "유동비율":     f"{float(latest.current_ratio or 0):.1f}%",
+        "당좌비율":     f"{float(latest.quick_ratio or 0):.1f}%",
+        "자본잠식률":     f"{float(latest.capital_impairment_ratio or 0):.1f}%",
     }
 
-    # 6) 업종별 평균 부실확률 (최신연도 기준)
+    # 6) 업종별 평균 부실확률 (최신연도 기준, 대분류 전체 + 현재업종 강조 세트)
+    # === 6) 업종별 '중앙값 부실확률' 그대로 사용 (0~1 스케일 가정) ===
     latest_year = int(latest.year)
-    q = (
+    target_cat  = (latest.industry_category or "기타")
+
+    # ✅ 여기를 실제 컬럼명으로 바꿔주세요.
+    # 예시 후보:
+    #   DashboardFlat.industry_median_default_prob
+    #   DashboardFlat.industry_median_prob
+    #   DashboardFlat.sector_median_default_prob
+    COL = DashboardFlat.median_default_prob  # <-- 실제 컬럼명으로!
+
+    # 대분류별 중앙값(이미 계산된 값)을 그대로 가져옴
+    q_all = (
         db.query(
-            DashboardFlat.industry_name,
-            func.avg(DashboardFlat.default_prob).label("avg_prob"),
+            DashboardFlat.industry_category.label("cat"),
+            # 같은 연/업종이면 값이 동일하다고 가정 → 집계는 max/avg 아무거나 무방
+            func.max(COL).label("med_prob")
         )
         .filter(DashboardFlat.year == latest_year)
-        .group_by(DashboardFlat.industry_name)
-        .order_by(func.avg(DashboardFlat.default_prob).desc())
+        .group_by(DashboardFlat.industry_category)
     )
+
+    # (라벨, 값[0~1]) 리스트
+    all_rows = [(lbl or "기타", float(v or 0)) for lbl, v in q_all.all()]
+    # 보기 좋게 내림차순 정렬
+    all_rows.sort(key=lambda x: x[1], reverse=True)
+
+    # 상위 5개 + 현재 회사 업종(없으면 추가)
+    top = all_rows[:5]
+    if target_cat not in [l for (l, _) in top]:
+        t_val = next((v for (l, v) in all_rows if l == target_cat), None)
+        if t_val is not None:
+            top.append((target_cat, t_val))
+
+    # 중복 제거 + 강조 플래그
+    seen = set()
+    series = []
+    for label, val in top:
+        if label in seen:
+            continue
+        seen.add(label)
+        series.append({
+            "label": label,
+            "value": val,                      # 0~1 값(프론트에서 ×100 → %)
+            "highlight": (label == target_cat)
+        })
+
     sector_risk = {
-        "title": "업종별 평균 부실징후 확률",
-        "series": [
-            {"label": ind or "기타", "value": float(avg or 0)}
-            for ind, avg in q.all()
-        ][:6]  # 상위 6개만
+        "title": "업종별 중앙값 부실징후 확률",
+        "series": series,                                   # 기본 6개
+        "all_series": [{"label": l, "value": v} for l, v in all_rows],  # 필터용 17개 전체
+        "highlight_label": target_cat,
+        "y_max_pct": 100,
+        "y_ticks": [0,10,20,30,40,50,60,70,80,90,100],
     }
+
+
 
     benchmark = build_benchmark(stock_code, db)
     # 부실확률 카드용 보조 데이터
@@ -96,6 +228,7 @@ def get_company_detail(stock_code: str, db: Session) -> Dict:
         # "cap_erosion": f"{float(latest.cap_erosion or 0)*100:.1f}%" 
         "cap_erosion": None,   # 당장 없으면 None
 }
+
 
     return {
         "company_info": company_info,
@@ -172,9 +305,10 @@ def _metric(name, company, industry, direction="higher_better"):
         "direction": direction,  # 'higher_better' | 'lower_better'
     }
 
+
+
 def build_benchmark(stock_code: str, db) -> dict:
-    """최신연도 기준 회사 vs 동일 업종 평균 비교 묶음 생성"""
-    # 최신 로우(회사)
+    """최신연도 기준: 회사 값 vs 같은 로우의 업종 중앙값(median_*) 비교"""
     latest = (
         db.query(DashboardFlat)
           .filter(DashboardFlat.stock_code == stock_code)
@@ -184,47 +318,16 @@ def build_benchmark(stock_code: str, db) -> dict:
     if not latest:
         return {"categories": [], "tolerance": 0.05}
 
-    latest_year = int(latest.year)
-    industry = latest.industry_name
-
-    # 동일 업종, 동일 연도 평균
-    avg = (
-        db.query(
-            func.avg(DashboardFlat.opm),               # 영업이익률
-            func.avg(DashboardFlat.npm),               # 순이익률
-            func.avg(DashboardFlat.roe),
-            func.avg(DashboardFlat.roa),
-            func.avg(DashboardFlat.debt_ratio),
-            func.avg(DashboardFlat.current_ratio),
-            func.avg(DashboardFlat.icr),
-            func.avg(DashboardFlat.sales_growth),
-            func.avg(DashboardFlat.op_income_growth),
-            func.avg(DashboardFlat.asset_turnover),
-            func.avg(DashboardFlat.ar_turnover),
-        )
-        .filter(DashboardFlat.year == latest_year,
-                DashboardFlat.industry_name == industry)
-        .one()
-    )
-
-    (
-        avg_opm, avg_npm, avg_roe, avg_roa,
-        avg_debt, avg_current, avg_icr,
-        avg_sales_g, avg_opinc_g,
-        avg_asset_t, avg_ar_t
-    ) = [ _f(x) for x in avg ]
-
-    # 카테고리 구성
     categories = [
         {
             "name": "수익성",
             "rule": "업종 평균보다 낮으면 경쟁력 약화",
             "signal_if_worse": "경쟁력 약화",
             "metrics": [
-                _metric("영업이익률(%)", latest.opm, avg_opm, "higher_better"),
-                _metric("순이익률(%)",   latest.npm, avg_npm, "higher_better"),
-                _metric("ROE(%)",      latest.roe, avg_roe, "higher_better"),
-                _metric("ROA(%)",      latest.roa, avg_roa, "higher_better"),
+                _metric("영업이익률(%)", latest.opm, latest.median_opm, "higher_better"),
+                _metric("순이익률(%)",   latest.npm, latest.median_npm, "higher_better"),
+                _metric("ROE(%)",      latest.roe, latest.median_roe, "higher_better"),
+                _metric("ROA(%)",      latest.roa, latest.median_roa, "higher_better"),
             ],
         },
         {
@@ -232,9 +335,9 @@ def build_benchmark(stock_code: str, db) -> dict:
             "rule": "업종 평균보다 낮거나 위험 구간이면 부실 위험",
             "signal_if_worse": "부실 위험",
             "metrics": [
-                _metric("부채비율(%)",     latest.debt_ratio,   avg_debt,   "lower_better"),
-                _metric("유동비율(%)",     latest.current_ratio, avg_current,"higher_better"),
-                _metric("이자보상배율",     latest.icr,           avg_icr,    "higher_better"),
+                _metric("부채비율(%)", latest.debt_ratio, latest.median_debt_ratio, "lower_better"),
+                _metric("유동비율(%)", latest.current_ratio, latest.median_current_ratio, "higher_better"),
+                _metric("이자보상배율", latest.icr, latest.median_icr, "higher_better"),
             ],
         },
         {
@@ -242,8 +345,8 @@ def build_benchmark(stock_code: str, db) -> dict:
             "rule": "업종 평균보다 못 미치면 경쟁력 하락",
             "signal_if_worse": "경쟁력 하락",
             "metrics": [
-                _metric("매출액증가율(%)",   latest.sales_growth,     avg_sales_g, "higher_better"),
-                _metric("영업이익증가율(%)", latest.op_income_growth, avg_opinc_g, "higher_better"),
+                _metric("매출액증가율(%)", latest.sales_growth, latest.median_sales_growth, "higher_better"),
+                _metric("영업이익증가율(%)", latest.op_income_growth, latest.median_op_income_growth, "higher_better"),
             ],
         },
         {
@@ -251,16 +354,13 @@ def build_benchmark(stock_code: str, db) -> dict:
             "rule": "업종 대비 과도하게 낮으면 운영 비효율",
             "signal_if_worse": "운영 비효율",
             "metrics": [
-                _metric("총자산회전율",     latest.asset_turnover, avg_asset_t, "higher_better"),
-                _metric("매출채권회전율",   latest.ar_turnover,    avg_ar_t,    "higher_better"),
+                _metric("총자산회전율", latest.asset_turnover, latest.median_asset_turnover, "higher_better"),
+                _metric("매출채권회전율", latest.ar_turnover, latest.median_ar_turnover, "higher_better"),
             ],
         },
     ]
+    return {"categories": categories, "tolerance": 0.05}
 
-    return {
-        "categories": categories,
-        "tolerance": 0.05,   # ±5% 이내 동률
-    }
 
 
 # =====================================================================
