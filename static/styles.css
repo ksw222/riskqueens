@@ -694,3 +694,156 @@ body{
      .benish-donut{ --size: 160px; }
    }
    
+/* =========================================
+   📱 Responsive Enhancements (모바일 최적화)
+   - 아래만 추가 붙여넣기
+   ========================================= */
+
+/* 1200px 이하: 여백/그리드 살짝 촘촘하게 */
+@media (max-width: 1200px){
+  .app{ margin:16px; padding:14px 14px 20px; }
+  .bench-groups{ grid-template-columns: 1fr; } /* 벤치마크 그룹 단일 컬럼 */
+  .kv{ grid-template-columns: repeat(4, 1fr); } /* 기업정보 6 -> 4 */
+}
+
+/* 1024px 이하: 카드/텍스트 크기 미세 조정 */
+@media (max-width: 1024px){
+  .card{ padding:12px; }
+  .section-title{ margin:0 0 8px; }
+  .kv{ grid-template-columns: repeat(3, 1fr); } /* 기업정보 3열 */
+  .risk-percent .metric .value{ font-size:20px; }
+  .gauge-wrap{ max-width: 360px; }
+  .sr-list{ width: 320px; }
+}
+
+/* 900~960px: 이미 .layout 단일컬럼이지만 내부 정렬 추가 조정 */
+@media (max-width: 960px){
+  .header{ gap:10px; }
+  .search{ width:100%; }
+  .search input{ min-width:0; width:100%; }
+  .sendmail button{ white-space:nowrap; }
+  .kv{ grid-template-columns: repeat(2, 1fr); }  /* 기업정보 2열 */
+  .risk-percent .rp-grid{ grid-template-columns:1fr; grid-template-areas: "prob" "icr" "cap"; }
+  .bench-table .bench-row{ grid-template-columns: 100px 1fr auto; } /* 폭 줄일 때 라벨 절약 */
+}
+
+/* 768px 이하: 헤더 스택/카드 간격 축소/터치 타깃 확대 */
+@media (max-width: 768px){
+  body{ font-size:13.5px; }
+  .header{
+    flex-direction: column;
+    align-items: stretch;
+    gap:10px;
+    padding:12px;
+    border-radius:12px;
+  }
+  .brand{ font-size:16px; }
+  .header .right{
+    justify-content: space-between;
+  }
+  .search{ order:3; }
+  .sendmail button, .search button{
+    padding:12px 14px; /* 터치 타깃 확대 */
+  }
+
+  .news-list{ gap:8px; }
+  .riskp{ min-height: 240px; }
+  .gauge-wrap{ max-width: 320px; }
+  .chart-card{ margin-top:2px; }
+  .chart-svg .x-tick, .chart-svg .y-tick{ font-size:10px; }
+  .chart-svg .val{ font-size:11px; }
+  .sector-svg .x-tick{ font-size:10px; }
+  .sector-svg .y-label{ font-size:12px; }
+
+  .bench-row{
+    grid-template-columns: 96px 1fr auto; /* 더 좁게 */
+    gap:10px;
+  }
+  .bench-values{ gap:8px; }
+  .chip{ font-size:11.5px; padding:2px 8px; }
+}
+
+/* 640px 이하: 카드 여백 최소화, 표/리스트 모바일화 */
+@media (max-width: 640px){
+  .app{ margin:12px; padding:12px; border-radius:12px; }
+  .card{ padding:12px; border-radius:10px; }
+  .section-title{ font-size:15px; }
+
+  .kv{ grid-template-columns: 1fr; } /* 기업정보 1열 */
+  .k{ min-width: 56px; }
+
+  .risk-percent .metric{ padding:12px; }
+  .risk-percent .metric.prob .value.big{ font-size:38px; }
+  .risk-percent .value-compare{ gap:12px; }
+  .risk-percent .value-compare .val .val-num{ font-size:24px; }
+
+  .bench-row{
+    grid-template-columns: 1fr; /* 라벨/바/값을 수직 스택 */
+    gap:6px;
+  }
+  .bench-metric{ font-weight:700; }
+  .bench-values{ justify-content: space-between; }
+  .bench-values .unit{ font-size:11px; }
+
+  .sr-list{ width: 86vw; max-width: 86vw; }
+  .sr-dd > summary{ min-width: auto; width:100%; }
+}
+
+/* 520px 이하: 아이콘/폰트 더 축소, 그래프/도넛 크기 조정 */
+@media (max-width: 520px){
+  .brand{ font-size:15px; }
+  .search input{ padding:10px; }
+  .gauge-wrap{ max-width: 300px; }
+  .risk-percent .metric .label{ font-size:12px; }
+  .risk-percent .metric .value{ font-size:20px; }
+  .risk-percent .metric.prob .value.big{ font-size:34px; }
+  .risk-percent .badge{ font-size:12px; }
+
+  .sector-svg .val, .sector-svg .val-in{ font-size:11px; }
+  .bench-note, .bench-rule{ font-size:11px; }
+  .benish-donut{ --size: 160px; } /* 이미 원본에 520 이하 축소 규칙 있음 → 유지/강화 */
+  .benish-value{ font-size:24px; }
+}
+
+/* 420px 이하: 극소 화면 최적화 */
+@media (max-width: 420px){
+  html, body{ font-size:13px; }
+  .app{ margin:8px; padding:10px; border-radius:10px; }
+  .header{ padding:10px; border-radius:10px; }
+  .search button{ padding:10px 12px; }
+  .sendmail button{ padding:10px 12px; }
+
+  .card{ padding:10px; }
+  .section-title{ font-size:14px; margin-bottom:6px; }
+
+  .gauge-wrap{ max-width: 280px; }
+  .riskp{ min-height: 220px; }
+  .risk-percent .value-compare{ gap:10px; }
+  .risk-percent .compare-bar{ height:20px; }
+  .risk-percent .compare-bar .track{ height:5px; }
+  .risk-percent .compare-bar .pin{ width:10px; height:10px; }
+
+  .bench-track{ height:10px; }
+  .bench-marker{ width:10px; height:10px; }
+
+  .news-item{ padding:8px; }
+  .news-title{ font-size:13.5px; }
+}
+
+/* ❗ 긴 단어/수치 줄바꿈 안전장치 */
+.card, .news-item, .ai-report pre, .md, .kv, .bench-table{
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ❗ SVG가 컨테이너를 넘지 않게 */
+svg, .chart-svg, .sector-svg, .gauge-svg{
+  max-width: 100%;
+  height: auto;
+}
+
+/* ❗ 터치 스크롤 최적화 (iOS 등) */
+html, body{
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
