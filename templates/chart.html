@@ -16,7 +16,7 @@
 {# y축 자동 상한 #}
 {% set ns = namespace(max=0) %}
 {% for (yr, p) in items %}
-  {% set v = (p * 100.0) %}
+  {% set v = p %}
   {% if v > ns.max %}{% set ns.max = v %}{% endif %}
 {% endfor %}
 {% set raw_max = ns.max if ns.max>0 else 10 %}
@@ -28,7 +28,7 @@
 {% for (yr, p) in items %}
   {% set idx = loop.index0 %}
   {% set x = m_left + (iw * (idx / (n-1 if n>1 else 1))) %}
-  {% set pct = (p * 100.0) %}
+  {% set pct = p %}
   {% set y = m_top + (ih * (1 - (pct / y_max))) %}
   {% set _ = pts.append(x ~ ',' ~ y) %}
 {% endfor %}
@@ -67,7 +67,7 @@
       {% for (yr, p) in items %}
         {% set idx = loop.index0 %}
         {% set x = m_left + (iw * (idx / (n-1 if n>1 else 1))) %}
-        {% set pct = (p * 100.0) %}
+        {% set pct = p %}
         {% set y = m_top + (ih * (1 - (pct / y_max))) %}
         <circle cx="{{ x }}" cy="{{ y }}" r="{{ 3.2 if not loop.last else 4.2 }}" class="dot {{ 'latest' if loop.last else '' }}"/>
         <text x="{{ x }}" y="{{ y - 8 }}" text-anchor="middle" class="val">{{ '%.1f'|format(pct) }}%</text>

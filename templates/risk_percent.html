@@ -1,19 +1,88 @@
 <section class="risk-percent">
+  {# ===== 입력 값 정리 ===== #}
+  {% set score = risk_score|default(0)|float %}
+
+  {# 업종 중앙값 소스: company_info.median_default_prob → median_default_prob 순 #}
+  {% set ci = company_info if company_info is defined else none %}
+  {% set _raw_median =
+        (ci.median_default_prob
+         if ci and (ci.median_default_prob is not none) else
+         (median_default_prob if median_default_prob is defined and median_default_prob is not none else none)) %}
+
+  {# 0~1 → % 변환 (Decimal 대비 |float 캐스팅) #}
+  {% set industry_prob = (_raw_median|float * 100.0) if _raw_median is not none else none %}
+
+  {# 임계값(게이지와 동일) #}
+  {% set safe_max    = 40.0 %}
+  {% set caution_max = 60.0 %}
+
+  {% if score >= caution_max %}
+    {% set status_text = "위험" %}
+    {% set badge_class = "danger" %}
+  {% elif score >= safe_max %}
+    {% set status_text = "주의" %}
+    {% set badge_class = "warn" %}
+  {% else %}
+    {% set status_text = "양호" %}
+    {% set badge_class = "good" %}
+  {% endif %}
+
   <div class="rp-grid">
     <!-- 1행: 부실확률 (가로 전체) -->
     <div class="metric prob">
       <div class="label">부실확률</div>
-      <div class="value big">{{ insolvency_data.percent }}</div>
-      <span class="badge {{ 'danger' if insolvency_data.status in ['위험','부실징후'] else 'warn' }}">
-        {{ insolvency_data.status }}
-      </span>
+
+      <!-- 자사 vs 업종평균 숫자 비교 -->
+      <div class="value-compare">
+        <div class="val you">
+          <span class="val-num">{{ '%.1f'|format(score) }}%</span>
+          <span class="val-label">자사</span>
+        </div>
+
+        <div class="val industry">
+          <span class="val-num">
+            {% if industry_prob is not none %}{{ '%.1f'|format(industry_prob) }}%{% else %}-{% endif %}
+          </span>
+          <span class="val-label">
+            업종평균{% if ci and ci.industry_name %} · {{ ci.industry_name }}{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <!-- 미니 트랙(0~100%) 위에 핀 2개 -->
+      <div class="compare-bar" aria-label="부실확률 비교">
+        <div class="track"></div>
+
+        <!-- 자사 핀 -->
+        {% set left_you = 0 if score < 0 else (100 if score > 100 else score) %}
+        <div
+          class="pin your"
+          style="left: {{ left_you }}%;"
+          title="자사: {{ '%.1f'|format(score) }}%"
+        ></div>
+
+        <!-- 업종평균 핀 (있을 때만) -->
+        {% if industry_prob is not none %}
+          {% set left_ind = 0 if industry_prob < 0 else (100 if industry_prob > 100 else industry_prob) %}
+          <div
+            class="pin industry"
+            style="left: {{ left_ind }}%;"
+            title="업종평균: {{ '%.1f'|format(industry_prob) }}%"
+          ></div>
+        {% endif %}
+      </div>
+
+      <span class="badge {{ badge_class }}">{{ status_text }}</span>
     </div>
 
     <!-- 2행-좌: 이자보상배율 -->
     <div class="metric">
       <div class="label">이자보상배율</div>
       <div class="value">
-        {{ risk_factor["이자보상배율"] if risk_factor and "이자보상배율" in risk_factor else "-" }}
+        {% if risk_factor is defined and risk_factor %}
+          {{ risk_factor.get('이자보상배율') if risk_factor.get('이자보상배율') is not none else '-' }}
+        {% else %}-{% endif %}
+      <div class="hint">1 미만 위험 | 1~2 주의 | 2 이상 양호</div>
       </div>
     </div>
 
@@ -21,7 +90,10 @@
     <div class="metric">
       <div class="label">자본잠식률</div>
       <div class="value">
-        {{ insolvency_card.cap_erosion if insolvency_card is defined and insolvency_card.cap_erosion is not none else "-" }}
+        {% if risk_factor is defined and risk_factor %}
+          {{ risk_factor.get('자본잠식률') if risk_factor.get('자본잠식률') is not none else '-' }}
+        {% else %}-{% endif %}
+        <div class="hint">0%↑ 잠식 진행 | 50% 심각 <br> 100% 완전잠식 | 음수: 양호</div>
       </div>
     </div>
   </div>

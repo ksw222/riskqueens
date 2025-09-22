@@ -1,58 +1,80 @@
-{# templates/sector_risk_chart.html — 업종별 평균 부실징후 확률 (Vertical Bars with clipped plot, safe) #}
+{# ===== templates/sector_risk_chart.html ===== #}
 {% set title = sector_risk.title or "업종별 평균 부실징후 확률" %}
-{# rows: series 우선, 없으면 items 키도 허용 #}
-{% set rows = sector_risk.get('series') or sector_risk.get('items') or [] %}
+{% set rows  = sector_risk.get('series') or sector_risk.get('items') or [] %}
+{% set highlight_label = sector_risk.highlight_label or '' %}
 
 <h3 class="sub-title">{{ title }}</h3>
 
-{# === 데이터 없으면 메시지 후 종료 === #}
 {% if rows|length == 0 %}
   <div class="mini-chart"><p class="y-label" style="margin:8px 4px;">표시할 데이터가 없습니다.</p></div>
-  {% set _stop = true %}
 {% else %}
-  {% set _stop = false %}
-{% endif %}
 
-{% if not _stop %}
-  {# === 캔버스 & 여백 === #}
+  {# ---- 캔버스/레이아웃 ---- #}
   {% set W = 860 %}
   {% set H = 300 %}
-  {% set ml = 56 %}   {# 왼쪽 y축 숫자 자리 #}
+  {% set ml = 56 %}
   {% set mr = 20 %}
   {% set mt = 22 %}
-  {% set mb = 70 %}   {# 아래 x축 라벨 전용 공간 #}
-
+  {% set mb = 70 %}
   {% set iw = W - ml - mr %}
   {% set ih = H - mt - mb %}
+  {% set y_max = 100.0 %}
+  {% set y_ticks = [0,10,20,30,40,50,60,70,80,90,100] %}
 
-  {# === 축/눈금 === #}
-  {% set y_max = sector_risk.y_max_pct or sector_risk.x_max_pct or 20 %}
-  {% set y_ticks = sector_risk.y_ticks or sector_risk.x_ticks or [0,5,10,15,20] %}
+  {# === 필터 UI (체크박스 드롭다운) === #}
+  <div class="card-slim" style="margin-bottom:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <details id="sr-dd" class="sr-dd">
+      <summary id="sr-dd-summary">대분류 선택</summary>
+      <div class="sr-dd-panel">
+        <div id="sr-list" class="sr-list">
+          {% set options = sector_risk.get('all_series') or rows %}
+          {% for it in options %}
+            {% set lab = it.label or it.sector or it.industry or '' %}
+            <label class="sr-item">
+              <input type="checkbox" class="sr-opt" value="{{ lab }}"
+                {% if it.highlight or (sector_risk.highlight_label and lab == sector_risk.highlight_label) %}checked{% endif %}>
+              <span>{{ lab }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        <div class="sr-dd-actions">
+          <button type="button" id="sr-dd-clear">전체 해제</button>
+          <button type="button" id="sr-dd-close">닫기</button>
+        </div>
+      </div>
+    </details>
+  
+    <label style="display:inline-flex; gap:6px; align-items:center;">
+      <input id="sr-keep-hi" type="checkbox" checked />
+      <span>현재 업종 항상 포함{% if sector_risk.highlight_label %} ({{ sector_risk.highlight_label }}){% endif %}</span>
+    </label>
+  
+    <button id="sr-apply"
+            style="padding:8px 12px; border:1px solid var(--border); border-radius:8px; background:var(--accent); color:#fff; font-weight:700;">
+      적용
+    </button>
+  </div>
+  
+  
 
-  {# === 데이터 개수/간격 === #}
-  {% set n = rows | length %}
-  {% set step = (iw / (n + 1 if n>0 else 1)) %}
-  {% set bar_w = [step * 0.6, 44] | min %}
-
-  <div class="mini-chart">
+  <div class="mini-chart" id="sr-chart"
+       data-w="{{ W }}" data-h="{{ H }}" data-ml="{{ ml }}" data-mr="{{ mr }}"
+       data-mt="{{ mt }}" data-mb="{{ mb }}" data-ymax="{{ y_max }}">
     <svg viewBox="0 0 {{ W }} {{ H }}" class="sector-svg" role="img" aria-label="{{ title }}">
       <title>{{ title }}</title>
 
-      <!-- 전체 카드 패널 -->
       <rect x="1" y="1" width="{{ W-2 }}" height="{{ H-2 }}" rx="10" ry="10" class="panel"/>
 
-      {# 플롯 영역을 벗어나는 요소를 잘라내기 위한 clipPath #}
       <defs>
         <clipPath id="plotClipSector">
           <rect x="{{ ml }}" y="{{ mt }}" width="{{ iw }}" height="{{ ih }}" rx="8" ry="8"></rect>
         </clipPath>
       </defs>
 
-      <!-- 플롯 프레임 -->
       <rect x="{{ ml }}" y="{{ mt }}" width="{{ iw }}" height="{{ ih }}"
             rx="8" ry="8" fill="none" style="stroke: var(--border); stroke-width: 1;" />
 
-      <!-- 가로 그리드 (플롯 내부만 보이게) -->
+      {# 가로 그리드 #}
       <g clip-path="url(#plotClipSector)">
         {% for t in y_ticks %}
           {% set gy = mt + (ih * (1 - (t / y_max))) %}
@@ -60,52 +82,161 @@
         {% endfor %}
       </g>
 
-      <!-- y축 눈금 숫자 -->
+      {# y축 눈금 #}
       {% for t in y_ticks %}
         {% set gy = mt + (ih * (1 - (t / y_max))) %}
         <text x="{{ ml - 8 }}" y="{{ gy + 4 }}" class="x-tick" text-anchor="end">{{ t }}</text>
       {% endfor %}
 
-      <!-- x축 베이스라인 -->
       <line x1="{{ ml }}" y1="{{ mt + ih }}" x2="{{ ml + iw }}" y2="{{ mt + ih }}"
             style="stroke: var(--border); stroke-width: 1.2;" />
 
-      <!-- 막대(클리핑 적용) + 값 라벨 -->
-      <g clip-path="url(#plotClipSector)">
-        {% for it in rows %}
-          {% set idx = loop.index0 %}
-
-          {# 호환: label/value 또는 sector/prob 또는 industry/avg_prob #}
-          {% set sector = (it.label if 'label' in it else (it.sector if 'sector' in it else (it.industry if 'industry' in it else ''))) %}
-          {% set prob   = (it.value if 'value' in it else (it.prob   if 'prob'   in it else (it.avg_prob if 'avg_prob' in it else 0))) %}
-          {% set pct = (prob * 100.0) %}
-
-          {% set ratio = (pct / y_max) if pct < y_max else 1 %}
-          {% set bar_h = ih * ratio %}
-          {% set cx = ml + step * (idx + 1) %}
-          {% set y_top = mt + ih - bar_h %}
-
-          <!-- 막대 -->
-          <rect x="{{ cx - bar_w/2 }}" y="{{ y_top }}" width="{{ bar_w }}" height="{{ bar_h }}"
-                rx="6" ry="6" class="bar"/>
-
-          <!-- 값 라벨: 막대 위쪽 (플롯 내부) -->
-          <text x="{{ cx }}" y="{{ y_top - 8 }}" text-anchor="middle"
-                style="fill:#475569;font-size:12px;font-weight:700">
-            {{ '%.1f'|format(pct) }}%
-          </text>
-        {% endfor %}
-      </g>
-
-      <!-- x축 업종 라벨(플롯 아래 전용 영역) -->
-      {% for it in rows %}
-        {% set idx = loop.index0 %}
-        {% set sector = (it.label if 'label' in it else (it.sector if 'sector' in it else (it.industry if 'industry' in it else ''))) %}
-        {% set cx = ml + step * (idx + 1) %}
-        <text x="{{ cx }}" y="{{ mt + ih + 28 }}" text-anchor="middle" class="y-label">
-          {{ sector }}
-        </text>
-      {% endfor %}
+      {# ▶ 동적으로 교체될 부분: 막대/값/라벨 그룹 #}
+      <g id="sr-bars"    clip-path="url(#plotClipSector)"></g>
+      <g id="sr-xlabels"></g>
     </svg>
+
+    {# 데이터 블록들 #}
+    <script type="application/json" id="sr-data">
+      {{ (sector_risk.get('all_series') or rows) | tojson }}
+    </script>
+    <script type="application/json" id="sr-initial">
+      {{ rows | tojson }}
+    </script>
+    <script type="application/json" id="sr-hi">
+      {{ highlight_label | tojson }}
+    </script>
   </div>
+
+  <script>
+    (function(){
+      // --- DOM refs
+      const root    = document.getElementById('sr-chart');
+      const svgBars = root.querySelector('#sr-bars');
+      const svgLbls = root.querySelector('#sr-xlabels');
+      const apply   = document.getElementById('sr-apply');
+      const keepHi  = document.getElementById('sr-keep-hi');
+    
+      // 드롭다운(체크박스) 컨트롤
+      const dd       = document.getElementById('sr-dd');
+      const summary  = document.getElementById('sr-dd-summary');
+      const btnClose = document.getElementById('sr-dd-close');
+      const btnClear = document.getElementById('sr-dd-clear');
+      const checks   = Array.from(document.querySelectorAll('.sr-opt')); // 각 옵션 체크박스
+    
+      // --- layout constants
+      const W  = +root.dataset.w,  H  = +root.dataset.h;
+      const ml = +root.dataset.ml, mr = +root.dataset.mr;
+      const mt = +root.dataset.mt, mb = +root.dataset.mb;
+      const iw = W - ml - mr, ih = H - mt - mb;
+      const YMAX = +root.dataset.ymax;
+    
+      // --- data
+      const rawAll     = JSON.parse(document.getElementById('sr-data').textContent    || '[]'); // 전체(가능하면 17개)
+      const rawInitial = JSON.parse(document.getElementById('sr-initial').textContent || '[]'); // 기본(6개)
+      const hiLabel    = JSON.parse(document.getElementById('sr-hi').textContent      || '""');
+    
+      // 0~1 → %, 강조 유지
+      const normalize = (arr)=>arr.map(it=>{
+        const label = it.label || it.sector || it.industry || '';
+        const v = ('value' in it) ? +it.value
+              : ('prob' in it) ? +it.prob
+              : ('avg_prob' in it) ? +it.avg_prob : 0;
+        const pct = (v <= 1.5) ? v * 100 : v;
+        return { label, pct, highlight: !!it.highlight || (hiLabel && label === hiLabel) };
+      });
+    
+      const ALL     = normalize(rawAll);
+      const INITIAL = normalize(rawInitial);
+    
+      // 체크박스 선택값 읽기 & 요약 표시
+      function getSelectedLabels(){
+        return checks.filter(c => c.checked).map(c => c.value);
+      }
+      function updateSummary(){
+        const n = getSelectedLabels().length;
+        summary.textContent = n ? `대분류 선택 (${n}개 선택)` : '대분류 선택';
+      }
+      checks.forEach(c => c.addEventListener('change', updateSummary));
+      btnClose.addEventListener('click', () => { dd.open = false; });
+      btnClear.addEventListener('click', () => { checks.forEach(c => c.checked = false); updateSummary(); });
+      updateSummary();
+    
+      // 렌더
+      function render(selectedLabels){
+        let data;
+        if (selectedLabels && selectedLabels.length){
+          const sel = new Set(selectedLabels);
+          data = ALL.filter(d => sel.has(d.label));
+        } else {
+          // 선택 없으면 기본(6개)
+          data = INITIAL.slice();
+        }
+    
+        // 현재 업종 항상 포함
+        if (keepHi.checked && hiLabel){
+          if (!data.some(d => d.label === hiLabel)){
+            const found = ALL.find(d => d.label === hiLabel);
+            if (found) data.push(found);
+          }
+        }
+    
+        // 레이아웃
+        const n    = Math.max(1, data.length);
+        const step = iw / (n + 1);
+        const barW = Math.min(step * 0.6, 44);
+    
+        // clear
+        svgBars.innerHTML = '';
+        svgLbls.innerHTML = '';
+    
+        // draw
+        data.forEach((d, i) => {
+          const cx    = ml + step * (i + 1);
+          const ratio = Math.min(1, d.pct / YMAX);
+          const barH  = ih * ratio;
+          const yTop  = mt + ih - barH;
+    
+          const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+          rect.setAttribute('x', cx - barW/2);
+          rect.setAttribute('y', yTop);
+          rect.setAttribute('width', barW);
+          rect.setAttribute('height', barH);
+          rect.setAttribute('rx', 6);
+          rect.setAttribute('ry', 6);
+          rect.setAttribute('class', 'bar' + (d.highlight ? ' highlight' : ''));
+          svgBars.appendChild(rect);
+    
+          const val = document.createElementNS('http://www.w3.org/2000/svg','text');
+          val.setAttribute('x', cx);
+          val.setAttribute('y', yTop - 8);
+          val.setAttribute('text-anchor','middle');
+          val.setAttribute('style','fill:#475569;font-size:12px;font-weight:700');
+          val.textContent = `${d.pct.toFixed(1)}%`;
+          svgBars.appendChild(val);
+    
+          const short = d.label.length > 10 ? d.label.slice(0,10) + '…' : d.label;
+          const lab = document.createElementNS('http://www.w3.org/2000/svg','text');
+          lab.setAttribute('x', cx);
+          lab.setAttribute('y', mt + ih + 28);
+          lab.setAttribute('text-anchor','middle');
+          lab.setAttribute('class','y-label');
+          lab.textContent = short;
+          svgLbls.appendChild(lab);
+        });
+      }
+    
+      // 최초 렌더: 기본 6개(+현재 업종 포함 규칙 적용)
+      render([]);
+    
+      // 적용 버튼
+      apply.addEventListener('click', ()=>{
+        const selected = getSelectedLabels();
+        render(selected);
+        dd.open = false;
+      });
+    })();
+    </script>
+    
+
 {% endif %}

@@ -2,13 +2,17 @@
   <div class="kv">
     <div><span class="k">기업명</span><span class="v">{{ company_info.company_name }}</span></div>
     <div><span class="k">종목코드</span><span class="v">{{ company_info.ticker }}</span></div>
+    <div><span class="k">업종</span><span class="v">{{ company_info.industry_category }}</span></div>
     <div><span class="k">시장</span><span class="v">{{ company_info.market_type }}</span></div>
     <div><span class="k">설립연도</span><span class="v">{{ company_info.founded_year }}</span></div>
   
     <!-- 부실징후 여부 -->
     <div class = "status-cell">
       <span class="k"></span>
-      {% if company_info.label|int == 1 %}
+      {# templates/company_info.html #}
+      {# 1 dict.get 사용 (Jinja 지원) #}
+      {% set lbl = company_info.get('label', 0) %}
+      {% if lbl|int == 1 %}
       <span class="status-pill status-pill--danger">부실징후</span>
       {% else %}
         <span class="status-pill status-pill--safe">정상</span>

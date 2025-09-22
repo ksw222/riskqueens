@@ -1,17 +1,47 @@
 import time
 from openai import OpenAI, RateLimitError, APIStatusError
 from db import settings
+import markdown
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_API_BASE)
 MODEL = settings.OPENAI_MODEL or "gpt-4o-mini"
 
 SYSTEM_PROMPT = """\
 당신은 제1금융권 은행에서 여신사후관리를 맡고있는 전문 재무 애널리스트입니다. 한국어로 간결하고 읽기 쉬운 보고서를 작성하세요.
-마크다운으로 해주세요.
 - 톤: 중립, 요약 위주, 불필요한 수사는 배제
 - 섹션: 핵심요약(3~5줄) / 부실위험평가 / 지표진단 / 리스크 요인 / 시사점
 - 표기: 수치는 단위와 함께 표기(%, 배), 출처는 '내부 산출'로 명시
 """
+
+# ai_report.py
+
+
+def generate_report(data: dict) -> str:
+    user_prompt = build_user_prompt(
+        data.get("company_info", {}),
+        data.get("insolvency_data", {}),
+        data.get("risk_factor", {}),
+        data.get("benchmark", {}),
+    )
+
+    for attempt in range(3):
+        try:
+            resp = client.responses.create(
+                model=MODEL,
+                input=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                max_output_tokens=550,
+            )
+            md_text = (resp.output_text or "").strip()
+            # 마크다운 → HTML 변환
+            html = markdown.markdown(md_text, extensions=["fenced_code", "tables"])
+            return html
+
+        except Exception as e:
+            return f"[오류] 보고서 생성 중 예외 발생: {e}"
+
 
 def build_user_prompt(company_info: dict, insolvency_data: dict, risk_factor: dict, benchmark: dict) -> str:
     name = company_info.get("company_name") or "-"

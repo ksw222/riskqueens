@@ -3,21 +3,52 @@ from fastapi import FastAPI, Request, Query, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 
 from db import get_db
-from services.company_service import get_company_detail, resolve_stock_code
+from services.company_service import get_company_detail, resolve_stock_code, get_latest_alert_companies
 
 from fastapi import Form
 from services.ai_report import generate_report
+from services.mailer import send_alert_email
+
+import os
+
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv(), override=True)  # 반드시 최상단에서!
+
 
 app = FastAPI(title="EWS Dashboard (SSR, no-JS)")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+# 이메일보내기
+
+def _env_missing(keys: list[str]) -> list[str]:
+    return [k for k in keys if not os.getenv(k, "").strip()]
+
+@app.post("/alerts/send", response_class=HTMLResponse)
+def send_alerts(request: Request, db: Session = Depends(get_db)):
+    try:
+        # (선택) 진단용: 실제 누락 키를 먼저 확인
+        missing = _env_missing(["SMTP_HOST","SMTP_PORT","SMTP_USER","SMTP_PASS","MAIL_TO"])
+        if missing:
+            ref = request.headers.get("referer", "/")
+            return RedirectResponse(url=f"{ref}?error=ENV%20missing:%20{','.join(missing)}", status_code=303)
+
+        alert_rows = get_latest_alert_companies(db=db)
+        sent = send_alert_email(alert_rows)
+
+        ref = request.headers.get("referer", "/")
+        return RedirectResponse(url=f"{ref}?sent={sent}&found={len(alert_rows)}", status_code=303)
+    except Exception as e:
+        ref = request.headers.get("referer", "/")
+        return RedirectResponse(url=f"{ref}?error={str(e)}", status_code=303)
+
 
 @app.get("/", response_class=HTMLResponse)
 def home() -> RedirectResponse:
-    return RedirectResponse(url="/company/005930")
+    return RedirectResponse(url="/company/003230")
     
 
 @app.get("/company", response_class=HTMLResponse)
@@ -26,7 +57,7 @@ def company_redirect(corp_id: str = Query(..., description="종목코드 또는 
         code = resolve_stock_code(corp_id, db)
     except Exception:
         # 못 찾으면 기본으로
-        code = "005930"
+        code = "003230"
     return RedirectResponse(url=f"/company/{code}")
 
 @app.get("/company/{corp_id}", response_class=HTMLResponse)
@@ -53,6 +84,9 @@ def company_dashboard(request: Request, corp_id: str, db=Depends(get_db)):
             "threshold": -2.22,
         }
     ctx = {"request": request, **data}
+
+
+
 
     # ---- [추가] 게이지 점수 계산 (0~100) ----
     def to_score_0_100(v) -> float:
@@ -103,8 +137,6 @@ def create_ai_report(request: Request, corp_id: str, db=Depends(get_db)):
     code = resolve_stock_code(corp_id, db)
     data = get_company_detail(code, db)
 
-    # (필요 시 옵션 받기)
-    # tone = Form(None), length = Form(None) 등
 
     md = generate_report(data)   # Markdown 문자열
     # 결과를 같은 페이지에 렌더(간단): <pre> 또는 <div>
