@@ -1,100 +1,57 @@
-{# 안전 가드: benchmark 미전달/빈 값인 경우 기본값으로 처리 #}
-{% set bench = (benchmark if benchmark is defined and benchmark else {'categories': [], 'tolerance': 0.05}) %}
-{% set tol = bench.tolerance or 0.05 %}
-{% set cats = (bench.categories if bench.categories is defined and bench.categories else []) %}
+<div class="card__header">
+  <h3 class="card__title">업종 대비 벤치마크</h3>
+  {% if benchmark.tolerance %}
+      <p class="card__note">±{{ (benchmark.tolerance * 100)|round(0) }}% 이내는 동률로 간주</p>
+  {% endif %}
+</div>
+<div class="card__content">
+  {% if benchmark.categories %}
+      <div class="benchmark-grid">
+          {% for category in benchmark.categories %}
+          <div class="benchmark-group">
+              <h4 class="benchmark-title">{{ category.name }}</h4>
+              <div class="benchmark-table">
+                  {% for item in category.metrics %}
+                      {# --- ✅ [추가] 배지 판정을 위한 비교 로직 --- #}
+                      {% set company_val = item.company if item.company is not none else 0.0 %}
+                      {% set industry_val = item.industry if item.industry is not none else 0.0 %}
+                      {% set tol = benchmark.tolerance or 0.05 %}
+                      {% set worse = namespace(flag=False) %}
 
-<h2 class="section-title">업종 대비 벤치마크</h2>
-<div class="bench-note">업종 평균과 비교(±{{ (tol * 100)|round(0) }}% 이내는 동률로 간주)</div>
+                      {% if item.direction == 'lower_better' %}
+                          {% if company_val > industry_val * (1 + tol) %}
+                              {% set worse.flag = True %}
+                          {% endif %}
+                      {% else %}
+                          {% if company_val < industry_val * (1 - tol) %}
+                              {% set worse.flag = True %}
+                          {% endif %}
+                      {% endif %}
 
-{% if cats|length == 0 %}
-  <div class="card-slim muted">비교할 지표가 없습니다.</div>
-{% else %}
-  <div class="bench-groups">
-    {% for cat in cats %}
-      <section class="bench-group card-slim">
-        <div class="bench-head">
-          <div class="bench-title">{{ cat.name|default('', true) }}</div>
-          <div class="bench-rule">{{ cat.rule|default('', true) }}</div>
-        </div>
-
-        <div class="bench-table">
-          {% set metrics = (cat.metrics if cat.metrics is defined and cat.metrics else []) %}
-          {% for m in metrics %}
-            {% set name = m.name|default('', true) %}
-            {% set dir  = m.direction|default('higher_better', true) %}
-        
-            {# 값 (None 방어) #}
-            {% set c = (m.company  is not none) and (m.company|float)  or 0.0 %}
-            {% set i = (m.industry is not none) and (m.industry|float) or 0.0 %}
-        
-            {# 단위 규칙 #}
-            {% set is_pct      = '(%)' in name %}
-            {% set is_multiple = '이자보상배율' in name %}
-        
-            {# ===== 배지 판정 =====
-               기본: direction 기준 (tol 고려)
-               예외: '부채비율' → 낮을수록 좋음 + 음수면 무조건 부실 위험
-            #}
-            {% if '부채비율' in name %}
-              {% if c < 0 %}
-                {% set worse = true %}
-              {% else %}
-                {% set worse = (c > i * (1 + tol)) %}
-              {% endif %}
-            {% else %}
-              {% if dir == 'lower_better' %}
-                {% set worse = (c > i * (1 + tol)) %}
-              {% else %}
-                {% set worse = (c < i * (1 - tol)) %}
-              {% endif %}
-            {% endif %}
-        
-            {# ===== Marker 위치 계산 =====
-               업종 평균은 50% 고정.
-               회사는 업종 대비 상대차로 좌우 이동:
-                 rel = (c - i) / base (base=|i|, 0이면 |c|, 그래도 0이면 1.0)
-               과도한 튐 방지: rel ∈ [-1,1] → 좌우 최대 45%만 이동
-            #}
-            {% set eps  = 1e-9 %}
-            {% set base = (i|abs) if (i|abs) > eps else ((c|abs) if (c|abs) > eps else 1.0) %}
-            {% set rel  = (c - i) / base %}
-            {% set rel  = [-1.0, [rel, 1.0]|min]|max %}
-            {% set p_cmp = 50.0 + (rel * 45.0) %}
-            {% set p_cmp = [0.0, [p_cmp, 100.0]|min]|max %}
-        
-            <div class="bench-row">
-              <div class="bench-metric">{{ name }}</div>
-        
-              <div class="bench-track">
-                <div class="bench-marker industry" style="left:50%"></div>             {# 업종 평균: 중앙 #}
-                <div class="bench-marker company"  style="left: {{ p_cmp|round(1) }}%"></div>  {# 회사: 좌/우 이동 #}
+                  <div class="benchmark-row">
+                      <div class="benchmark-metric">{{ item.name }}</div>
+                      <div class="benchmark-chart-container">
+                          <canvas class="benchmark-bar-chart"
+                                  data-company-value="{{ item.company }}"
+                                  data-industry-value="{{ item.industry }}">
+                          </canvas>
+                      </div>
+                      <div class="benchmark-result">
+                          {# --- ✅ [수정] 위 로직의 결과에 따라 배지 표시 --- #}
+                          {% if worse.flag %}
+                              {% set result_text = category.signal_if_worse | default('부진') %}
+                              <span class="chip chip--danger">{{ result_text }}</span>
+                          {% else %}
+                              <span class="chip chip--safe">양호</span>
+                          {% endif %}
+                      </div>
+                  </div>
+                  {% endfor %}
               </div>
-        
-              <div class="bench-values">
-                <div class="val">
-                  <span class="dot industry-dot"></span>
-                  {{ '%.1f'|format(i) }}{% if is_pct %}<span class="unit">%</span>{% elif is_multiple %}<span class="unit">배</span>{% endif %}
-                </div>
-                <div class="val">
-                  <span class="dot company-dot"></span>
-                  {{ '%.1f'|format(c) }}{% if is_pct %}<span class="unit">%</span>{% elif is_multiple %}<span class="unit">배</span>{% endif %}
-                </div>
-                {% if worse %}
-                  <span class="chip danger">{{ cat.signal_if_worse|default('주의', true) }}</span>
-                {% else %}
-                  <span class="chip ok">양호</span>
-                {% endif %}
-              </div>
-            </div>
+          </div>
           {% endfor %}
-        </div>
-        
-        
-        
-        
-        
-        
-      </section>
-    {% endfor %}
-  </div>
-{% endif %}
+      </div>
+  {% else %}
+      <div class="placeholder-text">비교할 지표가 없습니다.</div>
+  {% endif %}
+</div>

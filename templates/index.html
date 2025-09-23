@@ -1,18 +1,28 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>부실징후 예측 대시보드</title>
-  <meta name="description" content="EWS Dashboard · FastAPI · SSR (no JS)" />
-  <link rel="stylesheet" href="/static/styles.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RiskQueens AI Dashboard - {{ company_info.company_name | default('분석') }}</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+
 </head>
 <body>
-  <div class="app">
-    {% include 'header.html' %}
-    {% include 'main.html' %}
-  </div>
+    <div class="app-container">
+        {% include 'header.html' %}
+        {% include 'main.html' %}
+    </div>
+    
+    <script src="{{ url_for('static', path='/script.js') }}"></script>
 </body>
 </html>
-
-
