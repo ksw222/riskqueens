@@ -1,57 +1,64 @@
 <div class="card__header">
-  <h3 class="card__title">업종 대비 벤치마크</h3>
-  {% if benchmark.tolerance %}
-      <p class="card__note">±{{ (benchmark.tolerance * 100)|round(0) }}% 이내는 동률로 간주</p>
-  {% endif %}
+    <h3 class="card__title">업종 대비 벤치마크</h3>
+    {% if benchmark.tolerance %}
+        <p class="card__note">±{{ (benchmark.tolerance * 100)|round(0) }}% 이내는 동률로 간주</p>
+    {% endif %}
 </div>
 <div class="card__content">
-  {% if benchmark.categories %}
-      <div class="benchmark-grid">
-          {% for category in benchmark.categories %}
-          <div class="benchmark-group">
-              <h4 class="benchmark-title">{{ category.name }}</h4>
-              <div class="benchmark-table">
-                  {% for item in category.metrics %}
-                      {# --- ✅ [추가] 배지 판정을 위한 비교 로직 --- #}
-                      {% set company_val = item.company if item.company is not none else 0.0 %}
-                      {% set industry_val = item.industry if item.industry is not none else 0.0 %}
-                      {% set tol = benchmark.tolerance or 0.05 %}
-                      {% set worse = namespace(flag=False) %}
+    {% if benchmark.categories %}
+        <div class="benchmark-grid">
+            {% for category in benchmark.categories %}
+            <div class="benchmark-group">
+                <h4 class="benchmark-title">{{ category.name }}</h4>
+                <div class="benchmark-table">
+                    {% for item in category.metrics %}
+                        {# --- ✅ [수정] 배지 판정 로직 (부채비율 예외 처리 추가) --- #}
+                        {% set company_val = item.company if item.company is not none else 0.0 %}
+                        {% set industry_val = item.industry if item.industry is not none else 0.0 %}
+                        {% set tol = benchmark.tolerance or 0.05 %}
+                        {% set worse = namespace(flag=False) %}
 
-                      {% if item.direction == 'lower_better' %}
-                          {% if company_val > industry_val * (1 + tol) %}
-                              {% set worse.flag = True %}
-                          {% endif %}
-                      {% else %}
-                          {% if company_val < industry_val * (1 - tol) %}
-                              {% set worse.flag = True %}
-                          {% endif %}
-                      {% endif %}
+                        {# 부채비율 특별 케이스: 음수이면 무조건 '부실 위험' #}
+                        {% if '부채비율' in item.name %}
+                            {% if company_val < 0 %}
+                                {% set worse.flag = True %}
+                            {% elif company_val > industry_val * (1 + tol) %}
+                                {% set worse.flag = True %}
+                            {% endif %}
+                        {# 나머지 일반적인 케이스 #}
+                        {% elif item.direction == 'lower_better' %}
+                            {% if company_val > industry_val * (1 + tol) %}
+                                {% set worse.flag = True %}
+                            {% endif %}
+                        {% else %} {# higher_better #}
+                            {% if company_val < industry_val * (1 - tol) %}
+                                {% set worse.flag = True %}
+                            {% endif %}
+                        {% endif %}
 
-                  <div class="benchmark-row">
-                      <div class="benchmark-metric">{{ item.name }}</div>
-                      <div class="benchmark-chart-container">
-                          <canvas class="benchmark-bar-chart"
-                                  data-company-value="{{ item.company }}"
-                                  data-industry-value="{{ item.industry }}">
-                          </canvas>
-                      </div>
-                      <div class="benchmark-result">
-                          {# --- ✅ [수정] 위 로직의 결과에 따라 배지 표시 --- #}
-                          {% if worse.flag %}
-                              {% set result_text = category.signal_if_worse | default('부진') %}
-                              <span class="chip chip--danger">{{ result_text }}</span>
-                          {% else %}
-                              <span class="chip chip--safe">양호</span>
-                          {% endif %}
-                      </div>
-                  </div>
-                  {% endfor %}
-              </div>
-          </div>
-          {% endfor %}
-      </div>
-  {% else %}
-      <div class="placeholder-text">비교할 지표가 없습니다.</div>
-  {% endif %}
+                    <div class="benchmark-row">
+                        <div class="benchmark-metric">{{ item.name }}</div>
+                        <div class="benchmark-chart-container">
+                            <canvas class="benchmark-bar-chart"
+                                    data-company-value="{{ item.company }}"
+                                    data-industry-value="{{ item.industry }}">
+                            </canvas>
+                        </div>
+                        <div class="benchmark-result">
+                            {% if worse.flag %}
+                                {% set result_text = category.signal_if_worse | default('부진') %}
+                                <span class="chip chip--danger">{{ result_text }}</span>
+                            {% else %}
+                                <span class="chip chip--safe">양호</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="placeholder-text">비교할 지표가 없습니다.</div>
+    {% endif %}
 </div>
