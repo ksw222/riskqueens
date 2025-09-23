@@ -480,7 +480,10 @@ document.addEventListener("DOMContentLoaded", () => {
             this.renderBenchmarkCharts();
             // benish 차트는 JS로 그리지 않으므로 여기서 호출하지 않습니다.
         }
+
+        
     };
+    
     
     // --- 페이지 초기화 실행 ---
     THEME.init();

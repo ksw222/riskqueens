@@ -211,7 +211,7 @@ def get_company_detail(stock_code: str, db: Session) -> Dict:
         })
 
     sector_risk = {
-        "title": "업종별 중앙값 부실징후 확률",
+        "title": "업종별 평균 부실징후 확률",
         "series": series,                                   # 기본 6개
         "all_series": [{"label": l, "value": v} for l, v in all_rows],  # 필터용 17개 전체
         "highlight_label": target_cat,

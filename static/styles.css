@@ -648,6 +648,8 @@ html[data-theme="dark"] .ai-report-body strong {
 .benchmark-result {
   text-align: right;
 }
+
+
 /* ... (반응형 디자인은 이전과 동일하게 유지) ... */
 @media(max-width:1200px){.dashboard-grid{grid-template-columns:repeat(2,1fr)}.card--grid-col-3{grid-column:span 2}}
 @media(max-width:768px)
