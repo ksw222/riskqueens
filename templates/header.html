@@ -1,13 +1,24 @@
-
 <header class="header">
-  <div class="brand">RQ Dashboard</div>
-  <form class="search" action="/company" method="get">
-    <input type="text" name="corp_id" placeholder="종목코드(000000) 또는 회사명(리스크퀸즈)" />
-    <button type="submit">검색</button>
-  </form>
+  <div class="header__brand">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: var(--color-primary);"><path d="M12 2L2 7V17L12 22L22 17V7L12 2ZM4 8.24L12 12.77L20 8.24V16.76L12 20.23L4 16.76V8.24Z" fill="currentColor"/></svg>
+      <h1>RQ Dashboard</h1>
+  </div>
 
-    <!-- 메일 보내기 버튼 -->
-    <form class="sendmail" action="/alerts/send" method="post" style="margin-left:12px">
-      <button type="submit">메일 보내기</button>
-    </form>
+  <form class="header__search" action="/company" method="get">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" name="corp_id" placeholder="종목코드 또는 회사명 검색" />
+      <button type="submit" class="button button--primary">검색</button>
+  </form>
+  
+  <div class="header__actions">
+      <form action="/alerts/send" method="post">
+          <button type="submit" class="button button--secondary">
+              <span class="material-symbols-outlined">mail</span>
+              <span>메일 보내기</span>
+          </button>
+      </form>
+      <button id="theme-toggle" class="button button--icon" title="테마 전환">
+          <span class="material-symbols-outlined">dark_mode</span>
+      </button>
+  </div>
 </header>

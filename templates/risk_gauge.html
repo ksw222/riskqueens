@@ -1,43 +1,13 @@
-<section class="card riskg">
-  <h2 class="section-title">부실징후 게이지</h2>
-
-  {% set score0 = risk_score|default(0)|float %}
-  {% set score  = [[score0, 0.0]|max, 100.0]|min %}
-  {% set angle  = -90 + (score * 1.8) %}   {# 0→-90°, 100→+90° #}
-
-  <div class="gauge-wrap">
-    <svg class="gauge-svg" viewBox="0 0 200 120" aria-label="risk gauge">
-      <!-- 연한 배경 트랙(선택) -->
-      <path d="M10,110 A90,90 0 0 1 190,110"
-            fill="none" stroke="#f1f5f9" stroke-width="20" stroke-linecap="butt" />
-
-      <!-- 3등분: pathLength=3, 각 1/3 고정.
-           butt 캡에서 생길 수 있는 미세 틈을 막으려고 1.001/1.999로 아주 살짝 오버랩 -->
-      <!-- 1) 왼쪽: 초록 -->
-      <path d="M10,110 A90,90 0 0 1 190,110"
-            fill="none" stroke="#22c55e" stroke-width="20"
-            stroke-linecap="butt" pathLength="3"
-            stroke-dasharray="1.001 1.999" stroke-dashoffset="0" />
-
-      <!-- 2) 가운데: 빨강 -->
-      <path d="M10,110 A90,90 0 0 1 190,110"
-            fill="none" stroke="#ef4444" stroke-width="20"
-            stroke-linecap="butt" pathLength="3"
-            stroke-dasharray="1.001 1.999" stroke-dashoffset="1" />
-
-      <!-- 3) 오른쪽: 주황 -->
-      <path d="M10,110 A90,90 0 0 1 190,110"
-            fill="none" stroke="#f59e0b" stroke-width="20"
-            stroke-linecap="butt" pathLength="3"
-            stroke-dasharray="1.001 1.999" stroke-dashoffset="2" />
-
-      <!-- 바늘: 기본을 12시로 맞춤 -->
-      <g transform="rotate({{ angle }}, 100, 110)">
-        <!-- 중심(100,110) → 위쪽(100,20) -->
-        <line x1="100" y1="110" x2="100" y2="20"
-              stroke="#0f172a" stroke-width="4" stroke-linecap="round"/>
-      </g>
-      <circle cx="100" cy="110" r="7" fill="#0f172a" stroke="#fff" stroke-width="3"/>
-    </svg>
+<div class="card__header">
+      <h3 class="card__title">부실 징후 게이지</h3>
   </div>
-</section>
+  <div class="card__content content--center">
+      {# `_ctx` 함수에서 계산된 risk_score를 JS로 전달합니다. #}
+      {% set score = risk_score | default(0) | float %}
+      <div class="gauge-container">
+          <canvas id="riskGaugeChart" data-score="{{ score }}"></canvas>
+      </div>
+      <div id="riskGaugeStatus" class="gauge-status">
+          {# 이 부분은 script.js에서 점수에 따라 동적으로 채워줍니다. #}
+      </div>
+  </div>

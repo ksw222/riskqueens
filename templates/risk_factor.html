@@ -1,13 +1,28 @@
-<h2>위험개선요인</h2>
-<div class="factors">
-  {% for name, pct_str in risk_factor.items() %}
-    {% set pct = pct_str.replace('%','') | float %}
-    <div class="factor-row">
-      <span class="label">{{ name }}</span>
-      <div class="bar-wrap">
-        <div class="bar" style="width: {{ pct }}%"></div>
-      </div>
-      <span class="val">{{ pct_str }}</span>
+<div class="card__header">
+    <h3 class="card__title">위험개선요인</h3>
+</div>
+<div class="card__content">
+    <div class="risk-factor-list">
+        {# ✅ 표시할 10개 지표를 명시적으로 지정하여 순서를 고정합니다. #}
+        {% set factors = [
+            '매출액증가율', 'ROA', 'ROE', '차입금의존도', '이자보상배율', 
+            '부채비율', '매출액순이익률', '유동비율', '당좌비율', '자본잠식률'
+        ] %}
+
+        {% for factor_name in factors %}
+            {% set value_str = risk_factor.get(factor_name, '0') %}
+            {% set value_num = value_str.replace('%', '') | float %}
+            
+            <div class="risk-factor-row">
+                <div class="risk-factor-label">{{ factor_name }}</div>
+                <div class="risk-factor-bar-track">
+                    {# ✅ 음수 값일 경우 is-negative 클래스를 추가합니다. #}
+                    <div class="risk-factor-bar {{ 'is-negative' if value_num < 0 else '' }}" 
+                         style="width: {{ value_num|abs }}%;">
+                    </div>
+                </div>
+                <div class="risk-factor-value">{{ value_str }}</div>
+            </div>
+        {% endfor %}
     </div>
-  {% endfor %}
 </div>

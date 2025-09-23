@@ -1,21 +1,25 @@
-<section class="card">
-  <div class="kv">
-    <div><span class="k">기업명</span><span class="v">{{ company_info.company_name }}</span></div>
-    <div><span class="k">종목코드</span><span class="v">{{ company_info.ticker }}</span></div>
-    <div><span class="k">업종</span><span class="v">{{ company_info.industry_category }}</span></div>
-    <div><span class="k">시장</span><span class="v">{{ company_info.market_type }}</span></div>
-    <div><span class="k">설립연도</span><span class="v">{{ company_info.founded_year }}</span></div>
-  
-    <!-- 부실징후 여부 -->
-    <div class = "status-cell">
-      <span class="k"></span>
-      {# templates/company_info.html #}
-      {# 1 dict.get 사용 (Jinja 지원) #}
-      {% set lbl = company_info.get('label', 0) %}
-      {% if lbl|int == 1 %}
-      <span class="status-pill status-pill--danger">부실징후</span>
-      {% else %}
-        <span class="status-pill status-pill--safe">정상</span>
-      {% endif %}
-  </div>
-</section>
+<div class="company-info">
+    <div class="company-info__logo">
+        <span>{{ company_info.company_name[0] if company_info.company_name and company_info.company_name != 'N/A' else 'R' }}</span>
+    </div>
+    <div class="company-info__details">
+        <h2 class="company-info__name">{{ company_info.company_name | default('정보 없음') }}</h2>
+        <div class="company-info__meta">
+            <span>{{ company_info.industry_category | default('업종 정보 없음') }}</span>
+            <span class="divider"></span>
+            <span>{{ company_info.market_type | default('시장 정보 없음') }}</span>
+            <span class="divider"></span>
+            <span>{{ company_info.ticker | default('종목코드 없음') }}</span>
+            <span class="divider"></span>
+            <span>설립: {{ company_info.founded_year | default('-') }}</span>
+        </div>
+    </div>
+
+    <div class="company-info__status">
+        {% if company_info.label == 1 %}
+            <span class="chip chip--danger">부실징후</span>
+        {% else %}
+            <span class="chip chip--safe">정상</span>
+        {% endif %}
+    </div>
+</div>

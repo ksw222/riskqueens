@@ -1,19 +1,23 @@
-<section class="report card ai-card">
-    <div class="ai-head">
-      <h2 class="section-title">AI 레포트</h2>
-      <form action="/company/{{ company_info.ticker }}/ai-report" method="post">
-        <button class="btn" type="submit">레포트 생성</button>
-      </form>
-    </div>
-  
-    {% if ai_report_md %}
-      <div class="ai-report">
-        <pre>{{ ai_report_md|safe }}</pre>
-        <!-- Markdown으로 렌더하고 싶으면 Python에서 md → HTML 변환 후 |safe 사용 -->
-        <!-- <div class="md" >{{ ai_report_html|safe }}</div> -->
-      </div>
-    {% else %}
-      <div class="muted">버튼을 눌러 현재 지표로 보고서를 생성하세요.</div>
-    {% endif %}
-  </section>
-  
+<div class="card__header">
+  <h3 class="card__title">AI 종합 리포트</h3>
+  <form id="ai-report-form" action="/company/{{ company_info.ticker }}/ai-report" method="post">
+      <button type="submit" class="button button--primary">
+          <span class="material-symbols-outlined">auto_awesome</span>
+          <span>리포트 생성</span>
+      </button>
+  </form>
+</div>
+<div class="card__content">
+  <div id="ai-report-content">
+      {% if ai_report_md %}
+          <div class="ai-report-body">
+              {{ ai_report_md | safe }}
+          </div>
+      {% else %}
+          <div class="ai-report-placeholder">
+              <span class="material-symbols-outlined">edit_note</span>
+              <p>버튼을 눌러 현재 지표로<br/>AI 종합 분석 리포트를 생성하세요.</p>
+          </div>
+      {% endif %}
+  </div>
+</div>

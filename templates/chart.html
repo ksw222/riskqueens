@@ -1,77 +1,15 @@
-<h2 class="section-title">연도별 부실확률 추이</h2>
-
-
-{% set width = 700 %}
-{% set height = 320 %}
-{% set m_left = 54 %}
-{% set m_right = 18 %}
-{% set m_top = 18 %}
-{% set m_bottom = 40 %}
-{% set iw = width - m_left - m_right %}
-{% set ih = height - m_top - m_bottom %}
-
-{% set items = chart_data.bankruptcy_probabilities | dictsort %}
-{% set n = items | length %}
-
-{# y축 자동 상한 #}
-{% set ns = namespace(max=0) %}
-{% for (yr, p) in items %}
-  {% set v = p %}
-  {% if v > ns.max %}{% set ns.max = v %}{% endif %}
-{% endfor %}
-{% set raw_max = ns.max if ns.max>0 else 10 %}
-{% set y_max = (((raw_max + 8) / 10) | round(0, 'ceil')) * 10 %}
-{% set y_max_int = (y_max | round(0, 'ceil')) | int %}
-
-{# 좌표 계산 #}
-{% set pts = [] %}
-{% for (yr, p) in items %}
-  {% set idx = loop.index0 %}
-  {% set x = m_left + (iw * (idx / (n-1 if n>1 else 1))) %}
-  {% set pct = p %}
-  {% set y = m_top + (ih * (1 - (pct / y_max))) %}
-  {% set _ = pts.append(x ~ ',' ~ y) %}
-{% endfor %}
-{% if pts|length > 0 %}
-  {% set d = 'M ' ~ pts[0] ~ ' L ' ~ (pts[1:] | join(' L ')) %}
-{% else %}{% set d = '' %}{% endif %}
-
-<div class="chart-card">
-  <svg viewBox="0 0 {{ width }} {{ height }}" class="chart-svg" role="img" aria-label="{{ chart_data.title }}">
-    <title>{{ chart_data.title }}</title>
-
-    <rect x="1" y="1" width="{{ width-2 }}" height="{{ height-2 }}" rx="16" ry="16" class="panel"/>
-
-    {# ✅ y축 눈금: y_max_int(정수)만 사용 #}
-    {% for t in range(0, y_max_int + 1, 10) %}
-      {% set gy = m_top + (ih * (1 - (t / y_max))) %}
-      <line x1="{{ m_left }}" y1="{{ gy }}" x2="{{ m_left + iw }}" y2="{{ gy }}" class="grid"/>
-      <text x="{{ m_left - 10 }}" y="{{ gy + 4 }}" class="y-tick" text-anchor="end">{{ t }}</text>
-    {% endfor %}
-
-    {# x축 눈금/라벨 #}
-    {% for (yr, p) in items %}
-      {% set idx = loop.index0 %}
-      {% set xx = m_left + (iw * (idx / (n-1 if n>1 else 1))) %}
-      <line x1="{{ xx }}" y1="{{ m_top + ih }}" x2="{{ xx }}" y2="{{ m_top + ih + 4 }}" class="axis-tick"/>
-      <text x="{{ xx }}" y="{{ m_top + ih + 20 }}" class="x-tick" text-anchor="middle">{{ yr }}</text>
-    {% endfor %}
-
-    <rect x="{{ m_left }}" y="{{ m_top }}" width="{{ iw }}" height="{{ ih }}" class="plot-border" rx="10" ry="10"/>
-
-    {% if d %}
-      {% set area_d = d ~ ' L ' ~ (m_left + iw) ~ ',' ~ (m_top + ih) ~ ' L ' ~ m_left ~ ',' ~ (m_top + ih) ~ ' Z' %}
-      <path d="{{ area_d }}" class="area"/>
-      <path d="{{ d }}" class="line"/>
-
-      {% for (yr, p) in items %}
-        {% set idx = loop.index0 %}
-        {% set x = m_left + (iw * (idx / (n-1 if n>1 else 1))) %}
-        {% set pct = p %}
-        {% set y = m_top + (ih * (1 - (pct / y_max))) %}
-        <circle cx="{{ x }}" cy="{{ y }}" r="{{ 3.2 if not loop.last else 4.2 }}" class="dot {{ 'latest' if loop.last else '' }}"/>
-        <text x="{{ x }}" y="{{ y - 8 }}" text-anchor="middle" class="val">{{ '%.1f'|format(pct) }}%</text>
-      {% endfor %}
-    {% endif %}
-  </svg>
+<div class="card__header">
+  <h3 class="card__title">{{ chart_data.title | default('연도별 부실 확률 추이') }}</h3>
+</div>
+<div class="card__content">
+  {% if chart_data.bankruptcy_probabilities %}
+      {# ✅ [수정] 속성을 감싸는 따옴표를 큰따옴표(")에서 작은따옴표(')로 변경 #}
+      <canvas id="riskTrendChart" 
+              data-chart-data='{{ chart_data.bankruptcy_probabilities | tojson | safe }}'
+              aria-label="연도별 부실 확률 추이 차트" 
+              role="img">
+      </canvas>
+  {% else %}
+      <div class="placeholder-text">차트 데이터가 없습니다.</div>
+  {% endif %}
 </div>

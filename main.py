@@ -4,25 +4,49 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv, find_dotenv
+import os
 
 from db import get_db
 from services.company_service import get_company_detail, resolve_stock_code, get_latest_alert_companies
-
-from fastapi import Form
 from services.ai_report import generate_report
 from services.mailer import send_alert_email
 
-import os
-
-from dotenv import load_dotenv, find_dotenv
-load_dotenv(find_dotenv(), override=True)  # 반드시 최상단에서!
-
+load_dotenv(find_dotenv(), override=True)
 
 app = FastAPI(title="EWS Dashboard (SSR, no-JS)")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# 이메일보내기
+# -------- 최소 공용 유틸 --------
+def _to_score_0_100(v) -> float:
+    if v is None:
+        return 0.0
+    if isinstance(v, str):
+        s = v.strip()
+        if s.endswith("%"):
+            s = s[:-1]
+        try:
+            v = float(s)
+        except Exception:
+            return 0.0
+    try:
+        x = float(v)
+    except Exception:
+        return 0.0
+    if 0.0 <= x <= 1.0:
+        x *= 100.0
+    return max(0.0, min(100.0, x))
+
+def _ctx(request: Request, data: dict) -> dict:
+    raw = (
+        data.get("insolvency_data", {}).get("percent")
+        or data.get("default_prob")
+        or data.get("default_prob_score")
+        or 0
+    )
+    return {"request": request, **data, "risk_score": _to_score_0_100(raw)}
+# --------------------------------
 
 def _env_missing(keys: list[str]) -> list[str]:
     return [k for k in keys if not os.getenv(k, "").strip()]
@@ -30,33 +54,29 @@ def _env_missing(keys: list[str]) -> list[str]:
 @app.post("/alerts/send", response_class=HTMLResponse)
 def send_alerts(request: Request, db: Session = Depends(get_db)):
     try:
-        # (선택) 진단용: 실제 누락 키를 먼저 확인
         missing = _env_missing(["SMTP_HOST","SMTP_PORT","SMTP_USER","SMTP_PASS","MAIL_TO"])
         if missing:
             ref = request.headers.get("referer", "/")
             return RedirectResponse(url=f"{ref}?error=ENV%20missing:%20{','.join(missing)}", status_code=303)
 
-        alert_rows = get_latest_alert_companies(db=db)
-        sent = send_alert_email(alert_rows)
+        rows = get_latest_alert_companies(db=db)
+        sent = send_alert_email(rows)
 
         ref = request.headers.get("referer", "/")
-        return RedirectResponse(url=f"{ref}?sent={sent}&found={len(alert_rows)}", status_code=303)
+        return RedirectResponse(url=f"{ref}?sent={sent}&found={len(rows)}", status_code=303)
     except Exception as e:
         ref = request.headers.get("referer", "/")
         return RedirectResponse(url=f"{ref}?error={str(e)}", status_code=303)
 
-
 @app.get("/", response_class=HTMLResponse)
 def home() -> RedirectResponse:
     return RedirectResponse(url="/company/003230")
-    
 
 @app.get("/company", response_class=HTMLResponse)
 def company_redirect(corp_id: str = Query(..., description="종목코드 또는 회사명"), db=Depends(get_db)):
     try:
         code = resolve_stock_code(corp_id, db)
     except Exception:
-        # 못 찾으면 기본으로
         code = "003230"
     return RedirectResponse(url=f"/company/{code}")
 
@@ -66,7 +86,6 @@ def company_dashboard(request: Request, corp_id: str, db=Depends(get_db)):
         code = resolve_stock_code(corp_id, db)
         data = get_company_detail(code, db)
     except Exception:
-        # 템플릿이 깨지지 않도록 최소 구조로 렌더
         data = {
             "company_info": {"company_name":"N/A","ticker":corp_id,"market_type":"","founded_year":0},
             "chart_data": {"bankruptcy_probabilities": {}, "title": ""},
@@ -75,71 +94,25 @@ def company_dashboard(request: Request, corp_id: str, db=Depends(get_db)):
             "risk_factor": {},
             "sector_risk": {"title":"업종별 평균 부실징후 확률","series":[]},
             "benchmark": {"categories": [], "tolerance": 0.05},
-            "label": 0,  # ✅ 기본값
-            
-            # ✅ [추가: Beneish 기본값]
+            "label": 0,
             "beneish_mscore": None,
             "beneish_year": None,
             "score_fill": 0,
             "threshold": -2.22,
         }
-    ctx = {"request": request, **data}
-
-
-
-
-    # ---- [추가] 게이지 점수 계산 (0~100) ----
-    def to_score_0_100(v) -> float:
-        """
-        v가 37, '37', '37%', 0.37 어느 형태로 와도 0~100 스코어로 변환.
-        범위를 벗어나면 0~100으로 클램프.
-        """
-        if v is None:
-            return 0.0
-        if isinstance(v, str):
-            v = v.strip()
-            v = v[:-1] if v.endswith("%") else v
-        try:
-            x = float(v)
-        except Exception:
-            return 0.0
-        # 0~1 확률로 들어오면 %로 변환
-        if 0.0 <= x <= 1.0:
-            x *= 100.0
-        # 클램프
-        return max(0.0, min(100.0, x))
-
-    # insolvency_data.percent, or 다른 필드에서 가져오기
-    raw_percent = (
-        data.get("insolvency_data", {}).get("percent")
-        or data.get("default_prob")  # 혹시 이런 키라면
-        or data.get("default_prob_score")
-        or 0
-    )
-    risk_score = to_score_0_100(raw_percent)
-
-    ctx = {
-        "request": request,
-        **data,
-        "risk_score": risk_score,   # ← 게이지에 전달
-    }
-    return templates.TemplateResponse("index.html", ctx)
+    return templates.TemplateResponse("index.html", _ctx(request, data))
 
 @app.get("/api/dashboard", response_class=JSONResponse)
 def api_dashboard(corp_id: str = Query("005930"), db=Depends(get_db)):
     code = resolve_stock_code(corp_id, db)
     return get_company_detail(code, db)
 
-
 @app.post("/company/{corp_id}/ai-report", response_class=HTMLResponse)
 def create_ai_report(request: Request, corp_id: str, db=Depends(get_db)):
-    # 기존 데이터 조립 재사용
     code = resolve_stock_code(corp_id, db)
     data = get_company_detail(code, db)
 
-
-    md = generate_report(data)   # Markdown 문자열
-    # 결과를 같은 페이지에 렌더(간단): <pre> 또는 <div>
-    ctx = {"request": request, **data, "ai_report_md": md}
+    report_html = generate_report(data)
+    ctx = _ctx(request, data)
+    ctx["ai_report_md"] = report_html  # 템플릿에서 |safe 사용
     return templates.TemplateResponse("index.html", ctx)
-

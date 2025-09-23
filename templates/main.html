@@ -1,16 +1,11 @@
-<!-- templates/main.html -->
 <main class="layout">
   <section class="company card">{% include 'company_info.html' %}</section>
   <section class="riskg card">{% include 'risk_gauge.html' %}</section>
   <section class="riskp card">{% include 'risk_percent.html' %}</section>
-
   <section class="chart card">{% include 'chart.html' %}</section>
   <section class="riskf card">{% include 'risk_factor.html' %}</section>
-
   <section class="sector card">{% include 'sector_risk_chart.html' %}</section>
   <section class="news card">{% include 'benish.html' %}</section>
-
-  <section class="report">{% include 'ai_report.html' %}</section>
-
+  <section class="report card">{% include 'ai_report.html' %}</section>
   <section class="bench card">{% include 'metrics_benchmark.html' %}</section>
 </main>
