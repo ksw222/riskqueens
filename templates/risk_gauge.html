@@ -1,0 +1,13 @@
+<div class="card__header">
+      <h3 class="card__title">부실 징후 게이지</h3>
+  </div>
+  <div class="card__content content--center">
+      {# `_ctx` 함수에서 계산된 risk_score를 JS로 전달합니다. #}
+      {% set score = risk_score | default(0) | float %}
+      <div class="gauge-container">
+          <canvas id="riskGaugeChart" data-score="{{ score }}"></canvas>
+      </div>
+      <div id="riskGaugeStatus" class="gauge-status">
+          {# 이 부분은 script.js에서 점수에 따라 동적으로 채워줍니다. #}
+      </div>
+  </div>

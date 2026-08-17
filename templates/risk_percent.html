@@ -1,0 +1,18 @@
+<div class="card__header"><h3 class="card__title">주요 위험 지표</h3></div>
+<div class="card__content">
+  <div class="risk-metrics-grid">
+    <div class="risk-metric-item">
+      <span class="metric-label">부실확률 (회사)</span>
+      <span class="metric-value" data-count="{{ risk_score | default(0) | float | round(1) }}">{{ risk_score | default(0) | float | round(1) }}%</span>
+    </div>
+    <div class="risk-metric-item">
+      <span class="metric-label">부실확률 (업종 중앙값)</span>
+      {% set industry_prob = company_info.median_default_prob_pct | default(0) | float | round(1) %}
+      <span class="metric-value metric-value--muted" data-count="{{ industry_prob }}">{{ industry_prob }}%</span>
+    </div>
+    <div class="risk-metric-item">
+      <span class="metric-label">이자보상배율</span>
+      <span class="metric-value">{{ risk_factor.get('이자보상배율', '-') }}</span>
+    </div>
+  </div>
+</div>

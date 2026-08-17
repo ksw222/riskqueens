@@ -1,0 +1,14 @@
+fastapi==0.116.1
+starlette==0.47.2
+uvicorn==0.35.0
+SQLAlchemy==2.0.43
+psycopg2-binary==2.9.10
+pydantic==2.11.7
+pydantic-settings==2.10.1
+python-dotenv==1.1.1
+jinja2==3.1.6
+openai==1.99.9
+Markdown==3.8.2
+bleach==6.2.0
+httpx==0.28.1
+pytest==8.4.1

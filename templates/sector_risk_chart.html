@@ -1,0 +1,46 @@
+<div class="card__header">
+  <h3 class="card__title">{{ sector_risk.title or "업종별 평균 부실징후 확률" }}</h3>
+</div>
+<div class="card__content">
+  {% if sector_risk.series %}
+      <div class="filter-ui">
+          <details id="sector-filter-dd" class="filter-dropdown">
+              <summary id="sector-filter-summary">대분류 선택 ({{ sector_risk.series|length }}개)</summary>
+              <div class="filter-dropdown-panel">
+                  <div class="filter-list">
+                      {% for item in sector_risk.all_series %}
+                          <label class="filter-item">
+                              <input type="checkbox" class="sector-option" value="{{ item.label }}" 
+                              {% if item.label in (sector_risk.series | map(attribute='name') | list) %}checked{% endif %}>
+                              <span>{{ item.label }}</span>
+                          </label>
+                      {% endfor %}
+                  </div>
+                  <div class="filter-actions">
+                      <button type="button" id="sector-filter-clear">전체 해제</button>
+                      <button type="button" id="sector-filter-close">닫기</button>
+                  </div>
+              </div>
+          </details>
+          <label class="filter-item">
+              <input id="sector-keep-highlight" type="checkbox" checked />
+              <span>현재 업종 항상 포함 ({{ sector_risk.highlight_label }})</span>
+          </label>
+          <button id="sector-apply-filter" class="button button--primary">적용</button>
+      </div>
+
+      <div class="chart-container">
+          <canvas id="sectorRiskChart"></canvas>
+      </div>
+
+      <script type="application/json" id="sector-all-data">
+          {{ sector_risk.all_series | tojson | safe }}
+      </script>
+      <script type="application/json" id="sector-highlight-label">
+          {{ sector_risk.highlight_label | tojson | safe }}
+      </script>
+
+  {% else %}
+      <div class="placeholder-text">차트 데이터가 없습니다.</div>
+  {% endif %}
+</div>

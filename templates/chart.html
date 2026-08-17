@@ -1,0 +1,15 @@
+<div class="card__header">
+  <h3 class="card__title">{{ chart_data.title | default('연도별 부실 확률 추이') }}</h3>
+</div>
+<div class="card__content">
+  {% if chart_data.bankruptcy_probabilities %}
+      {# ✅ [수정] 속성을 감싸는 따옴표를 큰따옴표(")에서 작은따옴표(')로 변경 #}
+      <canvas id="riskTrendChart" 
+              data-chart-data='{{ chart_data.bankruptcy_probabilities | tojson | safe }}'
+              aria-label="연도별 부실 확률 추이 차트" 
+              role="img">
+      </canvas>
+  {% else %}
+      <div class="placeholder-text">차트 데이터가 없습니다.</div>
+  {% endif %}
+</div>
