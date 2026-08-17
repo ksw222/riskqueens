@@ -331,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     labels: filteredData.map(d => wrapLabel(d.label)),
                     datasets: [{
                         label: '부실 징후 확률',
-                        data: filteredData.map(d => d.value * 100),
+                        data: filteredData.map(d => d.value),
                         backgroundColor: filteredData.map(d => d.label === highlightLabel ? colors.success : colors.primary),
                         borderRadius: 4
                     }]

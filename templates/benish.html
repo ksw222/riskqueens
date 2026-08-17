@@ -10,7 +10,7 @@
     <figcaption class="benish-donut__center">
         
         {# ✅ [수정] data-count에도 소수점 두 자리 포매팅 적용 #}
-        <div class="benish-value" data-count="{{ '%.2f'|format(beneish_mscore) }}">
+        <div class="benish-value" data-count="{{ '%.2f'|format(beneish_mscore) if beneish_mscore is not none else '-' }}">
           {% if beneish_mscore is not none %}{{ '{:.2f}'.format(beneish_mscore) }}{% else %}-{% endif %}
         </div>
 

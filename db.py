@@ -5,11 +5,12 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from pydantic import Field
 
 class Settings(BaseSettings):
-    PG_USER: str
-    PG_PASSWORD: str
+    # Defaults keep import/startup available before Vercel DB variables are configured.
+    PG_USER: str = ""
+    PG_PASSWORD: str = ""
     PG_HOST: str = "localhost"
     PG_PORT: int = 5432
-    PG_DB: str
+    PG_DB: str = ""
 
         # --- OpenAI (여기 추가) ---
     OPENAI_API_KEY: str | None = None

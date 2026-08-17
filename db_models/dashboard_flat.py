@@ -67,6 +67,10 @@ class DashboardFlat(Base):
 
     # === 제약/인덱스 ===
     __table_args__ = (
+        CheckConstraint(
+            "(default_prob IS NULL) OR (default_prob >= 0 AND default_prob <= 1)",
+            name="chk_dashboard_flat_default_prob_unit_interval",
+        ),
         # market 체크 제약: NULL 허용 + 세 가지 값만
         CheckConstraint(
             "(market IS NULL) OR (market IN ('KOSPI','KOSDAQ','비상장'))",
