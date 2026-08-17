@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 import main
 from services import ai_report
+from db import Settings, build_database_url
 
 
 class BrokenSession:
@@ -45,3 +46,8 @@ def test_ai_key_absence_and_html_sanitization(monkeypatch):
     monkeypatch.setattr(ai_report.settings, "OPENAI_API_KEY", None)
     assert "OPENAI_API_KEY" in ai_report.generate_report({})
     assert "<script>" not in ai_report._safe_html("# ok\n<script>alert(1)</script>")
+
+
+def test_database_url_prefers_vercel_connection_string():
+    config = Settings(DATABASE_URL="postgresql://neon-user:secret@example.com/neondb?sslmode=require")
+    assert build_database_url(config) == config.DATABASE_URL

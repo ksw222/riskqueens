@@ -2,9 +2,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker, declarative_base
-from pydantic import Field
 
 class Settings(BaseSettings):
+    # Vercel Marketplace/Neon commonly injects this as DATABASE_URL.
+    DATABASE_URL: str | None = None
     # Defaults keep import/startup available before Vercel DB variables are configured.
     PG_USER: str = ""
     PG_PASSWORD: str = ""
@@ -23,14 +24,21 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # 👇 URL.create가 username/password 등 안전하게 인코딩해줍니다.
-db_url = URL.create(
-    "postgresql+psycopg2",
-    username=settings.PG_USER,
-    password=settings.PG_PASSWORD,
-    host=settings.PG_HOST,
-    port=settings.PG_PORT,
-    database=settings.PG_DB,
-)
+def build_database_url(config: Settings) -> str | URL:
+    """Prefer the Vercel/Neon connection string, with local PG_* fallback."""
+    if config.DATABASE_URL:
+        return config.DATABASE_URL
+    return URL.create(
+        "postgresql+psycopg2",
+        username=config.PG_USER,
+        password=config.PG_PASSWORD,
+        host=config.PG_HOST,
+        port=config.PG_PORT,
+        database=config.PG_DB,
+    )
+
+
+db_url = build_database_url(settings)
 
 engine = create_engine(db_url, pool_pre_ping=True, future=True)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
